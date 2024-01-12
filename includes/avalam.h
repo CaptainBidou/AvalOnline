@@ -254,5 +254,12 @@ listeCoups_t getCoupsLegaux(position_t p) ;
  * @see score_t
 */
 score_t evaluerScore(position_t p);
+
+/**
+ * \fn void afficherScore(score_t s)
+ * \brief Affiche le score s
+ * \param s score à afficher
+ * \see score_t
+*/
 void afficherScore(score_t s); 
 
