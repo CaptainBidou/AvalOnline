@@ -14,10 +14,11 @@
 void send_data_DGRAM(socket_t *socket, generic_t data, serialize_t serializeFunc, char *ip, int port) {
     buffer_t buff;
     if(serializeFunc == NULL) {
-        strcpy(buff, (char *)data);
-    } else {
-        serializeFunc(data, buff);
-    }
+        DATA_DEBUG_PRINT("[SEND_DATA] buffer: \"%s\"\n", (char *)data);
+        sendToSocket(socket, (char *)data, ip, port);
+        return;
+    } 
+    serializeFunc(data, buff);
     DATA_DEBUG_PRINT("[SEND_DATA] buffer: \"%s\"\n", buff);
     sendToSocket(socket, buff, ip, port);
 
@@ -34,10 +35,12 @@ void send_data_DGRAM(socket_t *socket, generic_t data, serialize_t serializeFunc
 void send_data_stream(socket_t *socket , generic_t data, serialize_t serializeFunc) {
     buffer_t buff;
     if(serializeFunc == NULL) {
-        strcpy(buff, (char *)data);
-    } else {
-        serializeFunc(data, buff);
+        writeToSocket(socket, (char *)data);
+        DATA_DEBUG_PRINT("[SEND_DATA] buffer: \"%s\"\n", (char *)data);
+        return;
     }
+
+    serializeFunc(data, buff);
     DATA_DEBUG_PRINT("[SEND_DATA] buffer: \"%s\"\n", buff);
     writeToSocket(socket, buff);
 }

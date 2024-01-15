@@ -9,6 +9,10 @@
     #define SESSION_DEBUG_PRINT(...) 
 #endif
 
+#define SET_COLOR(color) printf("\033[%sm", color) /*!< Macro pour changer la couleur du texte */
+#define RESET_COLOR() printf("\033[0m") /*!< Macro pour réinitialiser la couleur du texte */
+#define LIGHT_BLUE_COLOR "94" /*!< Couleur bleu clair */
+
 
 /**
  * \fn      int createSocket(int mode);
@@ -53,9 +57,12 @@ struct sockaddr_in createAddress(char *ip, int port) {
  */
 socket_t *createBindedSocket(int mode, char *ip, int port) {
     socket_t *sock = createSocket(mode);
-    struct sockaddr_in addr = createAddress(ip, port);
-    sock->localAddr = addr;
-    CHECK(bind(sock->fd, (struct sockaddr *)&addr, sizeof addr), "__BIND__");
+    sock->localAddr = createAddress(ip, port);
+    CHECK(bind(sock->fd, (struct sockaddr *)&sock->localAddr, sizeof(sock->localAddr)), "__BIND__");
+
+    // On récupère l'adresse locale de la socket
+    setLocalAddress(sock);
+
     return sock;
 }
 
@@ -71,6 +78,10 @@ socket_t *createBindedSocket(int mode, char *ip, int port) {
 socket_t *createListeningSocket(char *ip, int port, short maxClients) {
     socket_t *sock = createBindedSocket(SOCK_STREAM, ip, port);
     CHECK(listen(sock->fd, maxClients), "__LISTEN__");
+
+    // On récupère l'adresse locale de la socket
+    setLocalAddress(sock);
+
     return sock;
 }
 
@@ -86,10 +97,11 @@ socket_t *connectToServer(char *ip, int port) {
     socket_t *sock = createSocket(SOCK_STREAM);
     struct sockaddr_in addr = createAddress(ip, port);
     CHECK(connect(sock->fd, (struct sockaddr *)&addr, sizeof addr), "__CONNECT__");
-
     // On récupère l'adresse distante de la socket
-    socklen_t len = sizeof(sock->remoteAddr);
-    CHECK(getpeername(sock->fd, (struct sockaddr *)&sock->remoteAddr, &len), "__GETPEERNAME__");
+    setRemoteAddress(sock);
+    // On recupère l'adresse locale de la socket
+    setLocalAddress(sock);
+
     return sock;
 }
 
@@ -129,10 +141,9 @@ char *recvFromSocket(socket_t *sock, int size, char *buff) {
         fprintf(stderr, "La socket n'est pas en mode UDP\n");
         exit(-1);
     }
-    struct sockaddr_in addr;
-    socklen_t len = sizeof(addr);
-    CHECK(recvfrom(sock->fd, buff, size, 0, (struct sockaddr *)&addr, &len), "__RECVFROM__");
-    SESSION_DEBUG_PRINT("Message recu de [%s]:[%d]\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+    socklen_t len = sizeof(sock->remoteAddr);
+    CHECK(recvfrom(sock->fd, buff, size, 0, (struct sockaddr *)&sock->remoteAddr, &len), "__RECVFROM__");
+    SESSION_DEBUG_PRINT("Message recu de [%s]:[%d]\n", inet_ntoa(sock->remoteAddr.sin_addr), ntohs(sock->remoteAddr.sin_port));
     return buff;
 }
 
@@ -165,12 +176,6 @@ void sendToSocket(socket_t *sock, char *buff, char *ip, int port) {
     
     struct sockaddr_in addr = createAddress(ip, port);
     CHECK(sendto(sock->fd, buff, strlen(buff)+1, 0, (struct sockaddr *)&addr, sizeof addr), "__SENDTO__");
-
-    // On récupère l'adresse distante de la socket
-    socklen_t len = sizeof(sock->remoteAddr);
-    CHECK(getpeername(sock->fd, (struct sockaddr *)&sock->remoteAddr, &len), "__GETPEERNAME__");
-    SESSION_DEBUG_PRINT("Message envoyé à [%s]:[%d]\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
-
 }
 
 /**
@@ -187,6 +192,9 @@ socket_t *acceptClient(socket_t *sock) {
 
     socket_t *clientSocket = initSocket(SOCK_STREAM, client);
     clientSocket->remoteAddr = addr;
+
+    // Recuperation de l'adresse locale de la socket
+    setLocalAddress(clientSocket);
 
     return clientSocket;
 }
@@ -225,6 +233,8 @@ socket_t *initSocket(int mode, int fd) {
     CHECK_MALLOC(sock, "__MALLOC__");
     sock->fd = fd;
     sock->mode = mode;
+    memset(&sock->localAddr, 0, sizeof(sock->localAddr));
+    memset(&sock->remoteAddr, 0, sizeof(sock->remoteAddr));
     return sock;
 }
 
@@ -235,11 +245,68 @@ socket_t *initSocket(int mode, int fd) {
  * \note    Cette fonction est utilisée pour les sockets TCP et UDP
 */
 void freeSocket(socket_t *sock) {
-    // On ferme la socket
     close(sock->fd);
     // On libère la mémoire
     free(sock);
 }
 
+/**
+ * \fn    void printSocket(socket_t *sock);
+ * \brief Affichage des informations d'une socket (mode, adresse locale, adresse distante)
+ * \param sock : pointeur vers la structure socket_t à afficher
+ * \note  Cette fonction est utilisée pour les sockets TCP et UDP
+ * \see   socket_t
+*/
+void printSocket(socket_t *sock) {
+    SET_COLOR(LIGHT_BLUE_COLOR);
+    printf("<Socket:{\n");
+    printf(" Mode : ");
+    RESET_COLOR();
+    if(sock->mode == SOCK_STREAM) printf("TCP\n");
+    else if(sock->mode == SOCK_DGRAM) printf("UDP\n");
+    else printf("UNKNOWN\n");
+    SET_COLOR(LIGHT_BLUE_COLOR);
+    printf(" Local: ");
+    RESET_COLOR();
+    printf("%s:%d\n", inet_ntoa(sock->localAddr.sin_addr), ntohs(sock->localAddr.sin_port));
+    SET_COLOR(LIGHT_BLUE_COLOR);
+    printf(" Remote: ");
+    RESET_COLOR();
+    printf("%s:%d\n", inet_ntoa(sock->remoteAddr.sin_addr), ntohs(sock->remoteAddr.sin_port));
+    SET_COLOR(LIGHT_BLUE_COLOR);
+    printf("}>");
+    RESET_COLOR();
+    printf("\n");
+}
 
 
+/**
+ * \fn    addr_t getLocalAddress(socket_t *sock);
+ * \brief Récupération de l'adresse locale d'une socket et stockage dans la structure socket_t
+ * \param sock : pointeur vers la structure socket_t
+ * \return addr_t : structure contenant l'adresse locale
+ * \note  Cette fonction est utilisée pour les sockets TCP et UDP
+ * \see   socket_t
+*/
+struct sockaddr_in setLocalAddress(socket_t *sock) {
+    // On récupère l'adresse locale de la socket
+    socklen_t len = sizeof(sock->localAddr);
+    CHECK(getsockname(sock->fd, (struct sockaddr *)&sock->localAddr, &len), "__GETSOCKNAME__");
+    return sock->localAddr;
+
+}
+
+/**
+ * \fn    addr_t getRemoteAddress(socket_t *sock);
+ * \brief Récupération de l'adresse distante d'une socket et stockage dans la structure socket_t
+ * \param sock : pointeur vers la structure socket_t
+ * \return addr_t : structure contenant l'adresse distante
+ * \note  Cette fonction est utilisée pour les sockets TCP et UDP
+ * \see   socket_t
+*/
+struct sockaddr_in setRemoteAddress(socket_t *sock) {
+    // On récupère l'adresse distante de la socket
+    socklen_t len = sizeof(sock->remoteAddr);
+    CHECK(getpeername(sock->fd, (struct sockaddr *)&sock->remoteAddr, &len), "__GETPEERNAME__");
+    return sock->remoteAddr;
+}

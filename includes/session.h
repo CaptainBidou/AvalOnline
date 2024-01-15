@@ -1,3 +1,9 @@
+/**
+ * \file    session.h
+ * \brief   Fichier d'en-tête pour la bibliothèque session
+ * \author  Lukas Grando
+ * \version 2.0
+*/
 #ifndef _SESSION_H_
 #define _SESSION_H_
 
@@ -156,5 +162,36 @@ socket_t *acceptClient(socket_t *sock);
  * \param port : port du serveur (passé par adresse)
 */
 void getServerAddress(int argc, char **argv, char **ip, int *port);
+
+
+/**
+ * \fn    void printSocket(socket_t *sock);
+ * \brief Affichage des informations d'une socket (mode, adresse locale, adresse distante)
+ * \param sock : pointeur vers la structure socket_t à afficher
+ * \note  Cette fonction est utilisée pour les sockets TCP et UDP
+ * \see   socket_t
+*/
+void printSocket(socket_t *sock);
+
+
+/**
+ * \fn    addr_t setLocalAddress(socket_t *sock);
+ * \brief Récupération de l'adresse locale d'une socket et stockage dans la structure socket_t
+ * \param sock : pointeur vers la structure socket_t
+ * \return addr_t : structure contenant l'adresse locale
+ * \note  Cette fonction est utilisée pour les sockets TCP et UDP
+ * \see   socket_t
+*/
+struct sockaddr_in setLocalAddress(socket_t *sock);
+
+/**
+ * \fn    addr_t getRemoteAddress(socket_t *sock);
+ * \brief Récupération de l'adresse distante d'une socket et stockage dans la structure socket_t
+ * \param sock : pointeur vers la structure socket_t
+ * \return addr_t : structure contenant l'adresse distante
+ * \note  Cette fonction est utilisée pour les sockets TCP et UDP
+ * \see   socket_t
+*/
+struct sockaddr_in setRemoteAddress(socket_t *sock);
 
 #endif

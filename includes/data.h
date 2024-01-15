@@ -1,6 +1,7 @@
 /**
  * @file data.h
  * @brief Fichier d'en-tête pour la bliothèque data.
+ * @author Lukas Grando
  * @version 1.0
 */
 
