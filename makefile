@@ -39,6 +39,11 @@ $(OBJ_DIR)/session.o: $(SRC_DIR)/session.c $(INCLUDE_DIR)/session.h
 	@echo "Compilation de $<"
 	@gcc -c $< -o $@ -I$(INCLUDE_DIR) -DSESSION_DEBUG
 
+$(OBJ_DIR)/lib: $(SRC_DIR)/session.o $(INCLUDE_DIR)/avalam.o
+	@mkdir -p $(OBJ_DIR)
+	@echo "Compilation de $<"
+	@ar -crs libInet.a session.o avalam.o
+
 
 doc:
 	@echo "Creation de la documentation"
