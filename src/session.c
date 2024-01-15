@@ -1,27 +1,33 @@
 #include "session.h"
 
-#define CHECK(sts,msg) if ((sts) == -1) {perror(msg);exit(-1);}
-#ifdef SESSION_DEBUG
-    #define SESSION_DEBUG_PRINT(...) if (SESSION_DEBUG) printf(__VA_ARGS__)
+#define CHECK(sts,msg) if ((sts) == -1) {perror(msg);exit(-1);} /*!< Macro de vérification d'erreur */
+#define CHECK_MALLOC(sts,msg) if ((sts) == NULL) {perror(msg);exit(-1);} /*!< Macro de vérification d'erreur d'allocation mémoire */
+
+#ifdef SESSION_DEBUG /* Si SESSION_DEBUG est défini, on affiche les messages de debug */
+    #define SESSION_DEBUG_PRINT(...) if (SESSION_DEBUG) { fprintf(stderr, "[SESSION_DEBUG] "); printf(__VA_ARGS__); }
 #else
-    #define SESSION_DEBUG_PRINT(...)
+    #define SESSION_DEBUG_PRINT(...) 
 #endif
 
 
 /**
- * \fn      int createSocket(int mode)
+ * \fn      int createSocket(int mode);
  * \brief   Création d'une socket en mode TCP ou UDP
  * \param   mode : mode de la socket à créer (SOCK_STREAM/SOCK_DGRAM)
- * \return  int file descriptor de la socket créée
+ * \return  Un pointeur vers une structure socket_t contenant la socket créée
+ * \note    Cette fonction est utilisée pour les sockets TCP et UDP
+ * \see     socket_t
  */
-int createSocket(int mode) {
-    int sock;
-    CHECK(sock=socket(PF_INET, mode, 0), "__SOCKET__");
+socket_t *createSocket(int mode) {
+    socket_t *sock;
+    int fd;
+    CHECK(fd=socket(PF_INET, mode, 0), "__SOCKET__");
+    sock = initSocket(mode, fd);
     return sock;
 }
 
 /**
- * \fn      struct sockaddr_in createAddress(char *ip, int port)
+ * \fn      createAddress(char *ip, int port);
  * \brief   Création d'une structure sockaddr_in à partir d'une adresse IP et d'un port
  * \param   ip : adresse ip
  * \param   port : port
@@ -37,83 +43,203 @@ struct sockaddr_in createAddress(char *ip, int port) {
 }
 
 /**
- * \fn      int createBindedSocket(int mode, char *ip, int port)
+ * \fn      socket_t *createBindedSocket(int mode, char *ip, int port);
  * \brief   Création d'une socket en mode TCP ou UDP et bindée à une adresse IP et un port
  * \param   mode : mode de la socket à créer (SOCK_STREAM/SOCK_DGRAM)
  * \param   ip : adresse ip
  * \param   port : port
- * \return  file descriptor de la socket créée
+ * \return  Un pointeur vers une structure socket_t contenant la socket créée
+ * \see    socket_t
  */
-int createBindedSocket(int mode, char *ip, int port) {
-    int sock = createSocket(mode);
+socket_t *createBindedSocket(int mode, char *ip, int port) {
+    socket_t *sock = createSocket(mode);
     struct sockaddr_in addr = createAddress(ip, port);
-    CHECK(bind(sock, (struct sockaddr *)&addr, sizeof addr), "__BIND__");
+    sock->localAddr = addr;
+    CHECK(bind(sock->fd, (struct sockaddr *)&addr, sizeof addr), "__BIND__");
     return sock;
 }
 
 /**
- * \fn      int createListeningSocket(int mode, char *ip, int port, short maxClients)
+ * \fn      socket_t *createBindedSocket(int mode, char *ip, int port);
  * \brief   Création d'une socket en mode TCP ou UDP et bindée à une adresse IP et un port
  * \param   mode : mode de la socket à créer (SOCK_STREAM/SOCK_DGRAM)
  * \param   ip : adresse ip
  * \param   port : port
- * \param   maxClients : nombre maximum de clients en attente de connexion
- * \return  file descriptor de la socket créée
+ * \return  Un pointeur vers une structure socket_t contenant la socket créée
+ * \see    socket_t
  */
-int createListeningSocket(int mode, char *ip, int port, short maxClients) {
-    int sock = createBindedSocket(mode, ip, port);
-    CHECK(listen(sock, maxClients), "__LISTEN__");
+socket_t *createListeningSocket(char *ip, int port, short maxClients) {
+    socket_t *sock = createBindedSocket(SOCK_STREAM, ip, port);
+    CHECK(listen(sock->fd, maxClients), "__LISTEN__");
     return sock;
 }
 
 /**
- * \fn     int connectToServer(char *ip, int port)
+ * \fn     socket_t *connectToServer(char *ip, int port);
  * \brief  Demande de connexion à un serveur
- * \param  sock : file descriptor de la socket
  * \param  ip : adresse ip du serveur
  * \param  port : port du serveur
+ * \return Un pointeur vers une structure socket_t contenant la socket créée
+ * \see    socket_t
  */
-int connectToServer(char *ip, int port) {
-    int sock = createSocket(SOCK_STREAM);
+socket_t *connectToServer(char *ip, int port) {
+    socket_t *sock = createSocket(SOCK_STREAM);
     struct sockaddr_in addr = createAddress(ip, port);
-    CHECK(connect(sock, (struct sockaddr *)&addr, sizeof addr), "__CONNECT__");
+    CHECK(connect(sock->fd, (struct sockaddr *)&addr, sizeof addr), "__CONNECT__");
+
+    // On récupère l'adresse distante de la socket
+    socklen_t len = sizeof(sock->remoteAddr);
+    CHECK(getpeername(sock->fd, (struct sockaddr *)&sock->remoteAddr, &len), "__GETPEERNAME__");
     return sock;
 }
 
 /**
- * \fn     char *readFromSocket(int sock, int size)
+ * \fn     readFromSocket(socket_t *sock, int size);
  * \brief  Lecture d'un message sur une socket
- * \param  sock : file descriptor de la socket
+ * \param  sock : la structure socket_t contenant la socket
  * \param  size : taille du message à lire
- * \return message lu
- * \warning le message doit être libéré après utilisation
+ * \param  optBuff : buffer dans lequel on va stocker le message
+ * \return buff : buffer dans lequel on a stocké le message
+ * \note   Si buff est NULL, on alloue la mémoire
+ * \warning Si buff n'est pas NULL, il faut libérer la mémoire après utilisation
 */
-char *readFromSocket(int sock, int size) {
-    char *buff = malloc(size);
-    CHECK(read(sock, buff, size), "__READ__");
+char *readFromSocket(socket_t *sock, int size, char *optBuff) {
+    char *buff;
+    // Si buff est NULL, on alloue la mémoire
+    if(optBuff == NULL) buff = (char *)malloc(size);
+    else buff = optBuff;
+
+    CHECK_MALLOC(buff, "__MALLOC__");
+    CHECK(read(sock->fd, buff, size), "__READ__");
+    return buff;
+}
+/**
+ * \fn     char *recvFromSocket(socket_t *sock, int size, char *buff);
+ * \brief  Lecture d'un message sur une socket UDP
+ * \param  sock : la structure socket_t contenant la socket
+ * \param  size : taille du message à lire
+ * \param  buff : buffer dans lequel on va stocker le message
+ * \note  Si buff est NULL, on alloue la mémoire
+ * \note A n'utiliser que pour les sockets UDP
+ * \warning Si buff n'est pas NULL, il faut libérer la mémoire après utilisation
+ * \return buff : buffer dans lequel on a stocké le message
+*/
+char *recvFromSocket(socket_t *sock, int size, char *buff) {
+    if(sock->mode != SOCK_DGRAM) {
+        fprintf(stderr, "La socket n'est pas en mode UDP\n");
+        exit(-1);
+    }
+    struct sockaddr_in addr;
+    socklen_t len = sizeof(addr);
+    CHECK(recvfrom(sock->fd, buff, size, 0, (struct sockaddr *)&addr, &len), "__RECVFROM__");
+    SESSION_DEBUG_PRINT("Message recu de [%s]:[%d]\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
     return buff;
 }
 
 /**
- * \fn     void writeToSocket(int sock, char *buff)
+ * \fn     void writeToSocket(socket_t *sock, char *buff, int size);
  * \brief  Ecriture d'un message sur une socket
- * \param  sock : file descriptor de la socket
+ * \param  sock : la structure socket_t contenant la socket
  * \param  buff : message à envoyer
 */
-void writeToSocket(int sock, char *buff) {
+void writeToSocket(socket_t *sock, char *buff) {
     int len = strlen(buff)+1;
-    CHECK(write(sock, buff, len), "__WRITE__");
+    CHECK(write(sock->fd, buff, len), "__WRITE__");
 }
 
 /**
- * \fn    int acceptClient(int sock)
- * \brief Acceptation d'un client
+ * \fn void sendToSocket(socket_t *sock, char *buff, char *ip, int port);
+ * \brief Envoi d'un message à une adresse IP et un port donnés pour une socket UDP
  * \param sock : file descriptor de la socket
+ * \param buff : message à envoyer
+ * \param ip : adresse ip du destinataire
+ * \param port : port du destinataire
+ * \note Cette fonction est utilisée pour les sockets UDP
+ * \see socket_t
 */
-int acceptClient(int sock) {
+void sendToSocket(socket_t *sock, char *buff, char *ip, int port) {
+    if(sock->mode != SOCK_DGRAM) {
+        fprintf(stderr, "La socket n'est pas en mode UDP\n");
+        exit(-1);
+    }
+    
+    struct sockaddr_in addr = createAddress(ip, port);
+    CHECK(sendto(sock->fd, buff, strlen(buff)+1, 0, (struct sockaddr *)&addr, sizeof addr), "__SENDTO__");
+
+    // On récupère l'adresse distante de la socket
+    socklen_t len = sizeof(sock->remoteAddr);
+    CHECK(getpeername(sock->fd, (struct sockaddr *)&sock->remoteAddr, &len), "__GETPEERNAME__");
+    SESSION_DEBUG_PRINT("Message envoyé à [%s]:[%d]\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+
+}
+
+/**
+ * \fn    acceptClient();
+ * \brief Acceptation d'un client
+ * 
+*/
+socket_t *acceptClient(socket_t *sock) {
     struct sockaddr_in addr;
     int len = sizeof(addr);
-    int client = accept(sock, (struct sockaddr *)&addr, &len);
-    SESSION_DEBUG_PRINT("Client connecté sur [%s]:[%d]\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
-    return client;
+    int client = accept(sock->fd, (struct sockaddr *)&addr, &len);
+    CHECK(client, "__ACCEPT__");
+    SESSION_DEBUG_PRINT("Client connecté [%s]:[%d]\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+
+    socket_t *clientSocket = initSocket(SOCK_STREAM, client);
+    clientSocket->remoteAddr = addr;
+
+    return clientSocket;
 }
+
+/**
+ * \fn   void getServerAddress(int argc, char **argv, char **ip, int *port);
+ * \brief recupère l'adresse ip et le port du serveur depuis la ligne de commande
+ * \param argc : nombre d'arguments
+ * \param argv : tableau d'arguments 
+ * \param ip : adresse ip du serveur (passée par adresse)
+ * \param port : port du serveur (passé par adresse)
+*/
+void getServerAddress(int argc, char **argv, char **ip, int *port) {
+    // Vérification du nombre d'arguments
+    if (argc < 3) {
+        // Si pas assez d'arguments, on affiche l'usage et on quitte
+        printf("Usage: %s <ip> <port>\n", argv[0]);
+        exit(-1);
+    }
+    
+    SESSION_DEBUG_PRINT("Adresse du serveur: %s:%d\n", argv[1], atoi(argv[2]));
+    *ip = argv[1];
+    *port = atoi(argv[2]);
+}
+
+/**
+ * \fn      socket_t *initSocket(int mode, int fd);
+ * \brief   Initialisation d'une structure socket_t
+ * \param   mode : mode de la socket à créer (SOCK_STREAM/SOCK_DGRAM)
+ * \param   fd : file descriptor de la socket
+ * \return  Un pointeur vers une structure socket_t contenant la socket créée
+ * \note    Cette fonction est utilisée pour les sockets TCP et UDP
+*/
+socket_t *initSocket(int mode, int fd) {
+    socket_t *sock = (socket_t *) malloc(sizeof(socket_t));
+    CHECK_MALLOC(sock, "__MALLOC__");
+    sock->fd = fd;
+    sock->mode = mode;
+    return sock;
+}
+
+/**
+ * \fn      void freeSocket(socket_t *sock);
+ * \brief   Libération de la mémoire allouée pour une structure socket_t ainsi que la fermeture de la socket
+ * \param   sock : pointeur vers la structure socket_t à libérer
+ * \note    Cette fonction est utilisée pour les sockets TCP et UDP
+*/
+void freeSocket(socket_t *sock) {
+    // On ferme la socket
+    close(sock->fd);
+    // On libère la mémoire
+    free(sock);
+}
+
+
+
