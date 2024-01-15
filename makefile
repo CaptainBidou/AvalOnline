@@ -45,11 +45,10 @@ $(OBJ_DIR)/data.o: $(SRC_DIR)/data.c $(INCLUDE_DIR)/data.h
 	@echo "Compilation de $<"
 	@gcc -c $< -o $@ -I$(INCLUDE_DIR) -DDATA_DEBUG
 
-$(OBJ_DIR)/lib: $(SRC_DIR)/session.o $(INCLUDE_DIR)/avalam.o
+$(OBJ_DIR)/lib: $(SRC_DIR)/session.o $(INCLUDE_DIR)/avalam.o $(INCLUDE_DIR)/data.o
 	@mkdir -p $(OBJ_DIR)
 	@echo "Compilation de $<"
-	@ar -crs libInet.a session.o avalam.o
-
+	@ar -crs libInet.a session.o avalam.o data.o
 
 
 doc:
