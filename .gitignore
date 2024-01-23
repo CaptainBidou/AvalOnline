@@ -60,3 +60,7 @@ docs/
 client
 server
 .vscode/c_cpp_properties.json
+
+
+# vscode 
+.vscode/
