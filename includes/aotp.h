@@ -8,7 +8,3 @@
 #define AOTP_H
 
 #endif
-
-
-
-
