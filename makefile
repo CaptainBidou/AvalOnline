@@ -11,7 +11,7 @@ PROGLIST= server client
 PROGRAMMES=$(addprefix $(BIN_DIR)/, $(PROGLIST))
 
 
-all: $(PROGRAMMES)
+all: $(PROGRAMMES) doc
 	@echo "Compilation terminee"
 
 
@@ -22,10 +22,10 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@gcc -c $< -o $@ -I$(INCLUDE_DIR) 
 
 # Regle de compilation .o -> .exe
-$(BIN_DIR)/%: $(OBJ_DIR)/%.o $(OBJ_DIR)/avalam.o $(OBJ_DIR)/session.o $(OBJ_DIR)/data.o
+$(BIN_DIR)/%: $(OBJ_DIR)/%.o $(OBJ_DIR)/libInet.a
 	@mkdir -p $(BIN_DIR)
 	@echo "Edition de liens de $<"
-	@gcc $^ -o $@ $(LD_FLAGS) -g
+	@gcc $^ -o $@ $(LD_FLAGS) -g -I$(INCLUDE_DIR) -L$(OBJ_DIR) -lInet
 	@echo "Creation d'un lien symbolique vers $@"
 	@ln -sf $@ .
 
@@ -45,10 +45,15 @@ $(OBJ_DIR)/data.o: $(SRC_DIR)/data.c $(INCLUDE_DIR)/data.h
 	@echo "Compilation de $<"
 	@gcc -c $< -o $@ -I$(INCLUDE_DIR) -DDATA_DEBUG
 
-$(OBJ_DIR)/lib: $(SRC_DIR)/session.o $(INCLUDE_DIR)/avalam.o $(INCLUDE_DIR)/data.o
+$(OBJ_DIR)/aotp.o: $(SRC_DIR)/aotp.c $(INCLUDE_DIR)/aotp.h
 	@mkdir -p $(OBJ_DIR)
 	@echo "Compilation de $<"
-	@ar -crs libInet.a session.o avalam.o data.o
+	@gcc -c $< -o $@ -I$(INCLUDE_DIR) -DAOTP_DEBUG
+
+$(OBJ_DIR)/libInet.a: $(OBJ_DIR)/session.o $(OBJ_DIR)/avalam.o $(OBJ_DIR)/data.o $(OBJ_DIR)/aotp.o
+	@mkdir -p $(OBJ_DIR)
+	@echo "Compilation de $<"
+	@ar -crs $@ $^
 
 
 doc:

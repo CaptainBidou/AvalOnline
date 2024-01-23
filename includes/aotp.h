@@ -7,6 +7,13 @@
 #ifndef AOTP_H
 #define AOTP_H
 
+#define DEFAULT_AOTP_PORT 12345 /*!< Port par defaut du protocole */
+
+
+#define AOTP_STRUCT_SEPARATOR '|' /*!< Separateur de champs de la requete */
+#define AOTP_EMPTY_LINE "\r\n" /*!< Ligne vide de la requete */
+#define AOTP_HEADER_SEPARATOR ':' /*!< Separateur de l'entete de la requete */
+
 #include "session.h"
 #include "avalam.h"
 
@@ -16,6 +23,17 @@
 
 
 typedef int party_id_t; /*!< Identifiant d'une partie */
+
+/**
+ * \struct party_state_t 
+ * \brief Structure de l'etat d'une partie
+*/
+typedef enum {
+    PARTY_WAITING = 0, /*!< Partie en attente de joueurs */
+    PARTY_PLAYING, /*!< Partie en cours */
+    PARTY_FINISHED, /*!< Partie terminee */
+} party_state_t; /*!< Structure de l'etat d'une partie */
+
 
 /**
  * \enum AOTP_REQUEST
@@ -36,7 +54,7 @@ typedef enum {
     AOTP_SET_READY, /*!< Requete pour changer d'etat en pret */
     AOTP_SEND_MOVE, /*!< Requete pour envoyer un coup */
     AOTP_SEND_EVOLUTION, /*!< Requete pour envoyer un coup d'evolution */
-    AOTP_DISCONNECT, /*!< Requete de deconnexion */
+    AOTP_LEAVE_GAME, /*!< Requete de deconnexion d'une partie */
 } AOTP_REQUEST; /*!< Enumeration des requetes du protocole */
 
 /**
@@ -66,8 +84,9 @@ typedef struct {
  * \brief Structure de requete du protocole
 */
 typedef struct {
-    AOTP_REQUEST request; /*!< Code de la requete */
-    client_t client; /*!< Client qui effectue la requete */
+    AOTP_REQUEST action; /*!< Code de la requete */
+    short client_id; /*!< Identifiant du client */
+    char pseudo[20]; /*!< Pseudo du client */
     party_id_t party_id; /*!< Identifiant de la partie */
     party_state_t party_state; /*!< Etat de la partie */
     coup_t coup; /*!< Coup a jouer */
@@ -75,23 +94,13 @@ typedef struct {
 } aotp_request_t; /*!< Structure de requete du protocole */
 
 /**
- * \struct party_state_t 
- * \brief Structure de l'etat d'une partie
-*/
-typedef enum {
-    PARTY_WAITING = 0, /*!< Partie en attente de joueurs */
-    PARTY_PLAYING, /*!< Partie en cours */
-    PARTY_FINISHED, /*!< Partie terminee */
-} party_state_t; /*!< Structure de l'etat d'une partie */
-
-/**
  * \struct party_t
 */
 typedef struct {
     party_id_t id; /*!< Identifiant de la partie */
-    client_t *host; /*!< Hote de la partie */
+    char host_ip[16]; /*!< Adresse IP de l'hote */
+    short host_port; /*!< Port de l'hote */
     party_state_t state; /*!< Etat de la partie */
-    client_t *clients; /*!< Liste des clients de la partie */
 } party_t; /*!< Structure d'une partie */
 
 /* ------------------------------------------------------------------------ */
@@ -99,11 +108,11 @@ typedef struct {
 /* ------------------------------------------------------------------------ */
 
 /**
- * \fn void requestHandler(socket_t *socket, AOTP_REQUEST request)
+ * \fn void requestHandler(socket_t *socket, aotp_request_t *requestData)
  * \brief Fonction de gestion des requetes du protocole
  * Pour chaque requete il y un traitement specifique a effectuer
 */
-void requestHandler(socket_t *socket, AOTP_REQUEST request);
+void requestHandler(socket_t *socket, aotp_request_t *requestData);
 
 /**
  * \fn void struct2Request(aotp_request_t *request, char *buffer);
@@ -135,22 +144,6 @@ void request2Struct(char *buffer, aotp_request_t *request);
  * \param socket Socket du client
 */
 void clientInit(client_t *client, short id, char *pseudo, socket_t socket);
-
-/**
- * \fn void clientToString(client_t *client, char *buffer);
- * \brief Fonction de conversion d'un client en chaine de caracteres
- * \param client Client a convertir
- * \param buffer Chaine de caracteres resultante
-*/
-void clientToString(client_t *client, char *buffer);
-
-/**
- * \fn void stringToClient(char *buffer, client_t *client);
- * \brief Fonction de conversion d'une chaine de caracteres en client
- * \param buffer Chaine de caracteres a convertir
- * \param client Client resultante
-*/
-void stringToClient(char *buffer, client_t *client);
 
 /* ------------------------------------------------------------------------ */
 /*            M A N I P U L A T I O N    D E    P A R T I E S               */
