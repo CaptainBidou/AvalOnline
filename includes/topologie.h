@@ -53,6 +53,7 @@ voisins_t topologie[NBCASES] =
 position_t positionInitiale =
 {
 JAU,
+0,
 {
 	{1,ROU},
 	{1,JAU},

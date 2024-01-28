@@ -76,13 +76,6 @@
 	#define whojd(p)
 #endif
 
-//verif appels systèmes 
-
-#define CHECK_IF(sts,val,msg) \
-if ((sts) == (val)) {fprintf(stderr,"erreur appel systeme\n");perror(msg); exit(-1);}
-
-#define CHECK_DIF(sts,val,msg) \
-if ((sts) != (val)) {fprintf(stderr,"erreur appel systeme\n");perror(msg); exit(-1);}
 
 /**
  * \struct score_t
@@ -141,7 +134,7 @@ typedef struct {
 */
 typedef struct { 
 	char trait; /*!< Couleur du joueur qui doit jouer */
-	// char numCoup; // A ajouter
+	char numCoup; /*!< Numéro du coup joué */
 	colonne_t cols[NBCASES]; /*!< Colonnes du jeu */
 	evolution_t evolution; /*!< Pions évolution */
 } position_t;

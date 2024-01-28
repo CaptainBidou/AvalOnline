@@ -11,7 +11,7 @@
 
 
 #define AOTP_STRUCT_SEPARATOR '|' /*!< Separateur de champs de la requete */
-#define AOTP_EMPTY_LINE "\r\n" /*!< Ligne vide de la requete */
+#define AOTP_EMPTY_LINE "::" /*!< Ligne vide de la requete */
 #define AOTP_HEADER_SEPARATOR ':' /*!< Separateur de l'entete de la requete */
 
 #include "session.h"
@@ -79,6 +79,11 @@ typedef struct {
     socket_t socket; /*!< Socket du client */
 } client_t; /*!< Structure d'un client */
 
+typedef struct client_node{
+    client_t *client; /*!< Clients */
+    struct client_node *next; /*!< Pointeur vers le prochain client */
+} list_client_t; /*!< Structure d'une liste de clients */
+
 /**
  * \struct aotp_request
  * \brief Structure de requete du protocole
@@ -95,6 +100,7 @@ typedef struct {
 
 /**
  * \struct party_t
+ * \brief Structure representant une partie
 */
 typedef struct {
     party_id_t id; /*!< Identifiant de la partie */
@@ -102,6 +108,24 @@ typedef struct {
     short host_port; /*!< Port de l'hote */
     party_state_t state; /*!< Etat de la partie */
 } party_t; /*!< Structure d'une partie */
+
+typedef struct party_node {
+    party_t *party; /*!< Parties */
+    struct party_node *next; /*!< Pointeur vers la prochaine partie */
+} list_party_t; /*!< Structure d'une liste de parties */
+
+
+/**
+ * \struct aotp_response
+ * \brief Structure de reponse du protocole
+*/
+typedef struct {
+    AOTP_RESPONSE code; /*!< Code de retour */
+    char response_desc[100]; /*!< Description de la reponse */
+    list_party_t *parties;
+    position_t *position;
+} aotp_response_t; /*!< Structure de reponse du protocole */
+
 
 /* ------------------------------------------------------------------------ */
 /*            P R O T O T Y P E S    D E    F O N C T I O N S               */
@@ -159,61 +183,80 @@ void clientInit(client_t *client, short id, char *pseudo, socket_t socket);
 */
 void partyInit(party_t *party, party_id_t id, client_t *host, party_state_t state);
 
-/**
- * \fn void partyToString(party_t *party, char *buffer);
- * \brief Fonction de conversion d'une partie en chaine de caracteres
- * \param party Partie a convertir
- * \param buffer Chaine de caracteres resultante
-*/
-void partyToString(party_t *party, char *buffer);
 
 /**
- * \fn void stringToParty(char *buffer, party_t *party);
- * \brief Fonction de conversion d'une chaine de caracteres en partie
- * \param buffer Chaine de caracteres a convertir
- * \param party Partie resultante
+ * \fn list_client_t *initClientList(client_t *client);
+ * \brief Fonction d'initialisation d'une liste de clients
+ * \param list Liste de clients a initialiser
 */
-void stringToParty(char *buffer, party_t *party);
-
-/* ------------------------------------------------------------------------ */
-/*            M A N I P U L A T I O N    D E    C O U P S                   */
-/* ------------------------------------------------------------------------ */
+list_client_t *initClientList(client_t *client);
 
 /**
- * \fn void coupToString(coup_t *coup, char *buffer);
- * \brief Fonction de conversion d'un coup en chaine de caracteres
- * \param coup Coup a convertir
- * \param buffer Chaine de caracteres resultante
+ * \fn void addClient(list_client_t **head, client_t *client);
+ * \brief Fonction d'ajout d'un client a une liste de clients
+ * \param list Liste de clients
+ * \param client Client a ajouter
 */
-void coupToString(coup_t *coup, char *buffer);
+void addClient(list_client_t **head, client_t *client);
 
 /**
- * \fn void stringToCoup(char *buffer, coup_t *coup);
- * \brief Fonction de conversion d'une chaine de caracteres en coup
- * \param buffer Chaine de caracteres a convertir
- * \param coup Coup resultante
+ * \fn void removeClient(list_client_t *list, client_t *client);
+ * \brief Fonction de suppression d'un client d'une liste de clients
+ * \param list Liste de clients
+ * \param client Client a supprimer
 */
-void stringToCoup(char *buffer, coup_t *coup);
-
-/* ------------------------------------------------------------------------ */
-/*            M A N I P U L A T I O N    D ' E V O L U T I O N S           */
-/* ------------------------------------------------------------------------ */
+void removeClient(list_client_t **head, client_t *client);
 
 /**
- * \fn void evolutionToString(evolution_t *evolution, char *buffer);
- * \brief Fonction de conversion d'une evolution en chaine de caracteres
- * \param evolution Evolution a convertir
- * \param buffer Chaine de caracteres resultante
+ * \fn void initResponse(aotp_response_t *response, AOTP_RESPONSE code, list_party_t *parties, position_t *position);
+ * \brief Fonction d'initialisation d'une reponse
+ * \param response Reponse a initialiser
+ * \param code Code de retour de la reponse
+ * \param parties Parties a retourner (optionnel)
+ * \param position Position a retourner (optionnel)
 */
-void evolutionToString(evolution_t *evolution, char *buffer);
+void initResponse(aotp_response_t *response, AOTP_RESPONSE code, list_party_t *parties, position_t *position);
+
 
 /**
- * \fn void stringToEvolution(char *buffer, evolution_t *evolution);
- * \brief Fonction de conversion d'une chaine de caracteres en evolution
- * \param buffer Chaine de caracteres a convertir
- * \param evolution Evolution resultante
+ * \fn void struct2Response(aotp_response_t *response, char *buffer);
+ * \brief Fonction de conversion d'une structure en reponse sous le format aotp
+ * \param response Reponse a convertir
+ * \param buffer Buffer de conversion
 */
-void stringToEvolution(char *buffer, evolution_t *evolution);
+void struct2Response(aotp_response_t *response, char *buffer);
 
+/**
+ * \fn void response2Struct(char *buffer, aotp_response_t *response);
+ * \brief Fonction de conversion d'une reponse sous le format aotp en structure
+ * \param buffer Reponse a convertir
+ * \param response Structure resultante
+ * 
+*/
+void response2Struct(char *buffer, aotp_response_t *response);
+
+/**
+ * \fn list_party_t initPartyList(party_t *party);
+ * \brief Fonction d'initialisation d'une liste de parties
+ * \param list Liste de parties a initialiser
+ * \param party Partie a ajouter (optionnel)
+*/
+list_party_t *initPartyList(party_t *party);
+
+/**
+ * \fn void addParty(list_party_t **head, party_t *party);
+ * \brief Fonction d'ajout d'une partie a une liste de parties
+ * \param head Liste de parties
+ * \param party Partie a ajouter
+*/
+void addParty(list_party_t **head, party_t *party);
+
+/**
+ * \fn void removeParty(list_party_t *list, party_t *party);
+ * \brief Fonction de suppression d'une partie d'une liste de parties
+ * \param list Liste de parties
+ * \param party Partie a supprimer
+*/
+void removeParty(list_party_t **list, party_t *party);
 
 #endif
