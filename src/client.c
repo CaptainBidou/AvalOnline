@@ -125,7 +125,7 @@ int main() {
             break;
         case '3':
             COULEUR(RED);
-            printf("Ciao\n");
+            printf("Ah ché genant\n");
             COLOR_RESET;
             exit(0);
             break;
