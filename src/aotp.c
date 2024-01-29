@@ -1,7 +1,6 @@
 #include "aotp.h"
 
-list_client_t *clients = NULL; // Liste des clients connectes
-party_t *parties; // Liste des parties en cours
+
 
 
 /**
@@ -31,11 +30,13 @@ void requestHandler(socket_t *socket, aotp_request_t *requestData) {
     AOTP_REQUEST action = requestData->action;
     switch (action) {
     case AOTP_CONNECT:
+        //connecte le client et l'ajoute a la liste des clients
         connectHandler(socket, requestData);
         break;
     
     case AOTP_DISCONNECT:
-        // TODO : Retirer le client de la liste des clients connectes
+        // supprime le client de la liste 
+        supprClient(&clients, requestData->client_id);
         break;
 
     case AOTP_CREATE_PARTY:
@@ -43,7 +44,7 @@ void requestHandler(socket_t *socket, aotp_request_t *requestData) {
         break;
 
     case AOTP_JOIN_PARTY:
-        // TODO : Le serveur d'enregistrement mettre en relation le client avec l'hote de la partie
+        // TODO : Mettre en relation le client avec l'hote de la partie
 
         break;
     
@@ -436,6 +437,31 @@ void removeParty(list_party_t **list, party_t *party) {
         if (current->party->id == party->id) {
             if (previous == NULL) {
                 *list = current->next;
+            } else {
+                previous->next = current->next;
+            }
+            free(current);
+            break;
+        }
+        previous = current;
+        current = current->next;
+    }   
+}
+
+/**
+ * \fn void supprClient(&clients, requestData->client_id);
+ * \brief Fonction de suppression d'un client d'une liste de clients
+ * \param clients Liste des clients
+ * \param id Identifiant du client a supprimer
+*/
+void supprClient(list_client_t **clients, short id) {
+
+    list_client_t *current = clients;
+    list_client_t *previous = NULL;
+    while (current != NULL) {
+        if (current->client->id == id) {
+            if (previous == NULL) {
+                clients = current->next;
             } else {
                 previous->next = current->next;
             }
