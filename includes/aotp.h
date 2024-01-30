@@ -108,6 +108,7 @@ typedef struct
 typedef struct
 {
     party_id_t id;       /*!< Identifiant de la partie */
+    char pseudo[20];     /*!< Pseudo de l'hote */
     char host_ip[16];    /*!< Adresse IP de l'hote */
     short host_port;     /*!< Port de l'hote */
     party_state_t state; /*!< Etat de la partie */
