@@ -1,8 +1,6 @@
 #include "aotp.h"
 
 
-
-
 /**
  * \fn void connectHandler(socket_t *socket, aotp_request_t *requestData);
  * \brief Fonction de gestion de la connexion d'un client
@@ -11,14 +9,19 @@
  * \note Cette fonction est appelee lors de la reception d'une requete de connexion
  * \warning lors de la creation d'un client, une allocation dynamique est effectuee
 */
-void connectHandler(socket_t *socket, aotp_request_t *requestData) {
+void connectHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients) {
     // Creation d'un nouveau client
     client_t *client = malloc(sizeof(client_t));
     clientInit(client, requestData->client_id, requestData->pseudo, *socket);
     // Ajout du client a la liste des clients connectes
-    addClient(&clients, client);
+    addClient(clients, client);
+
     // Creation de la reponse de connexion
     aotp_response_t *response = malloc(sizeof(aotp_response_t));
+
+    // On remplit la réponse
+
+    // On attend une réponse du client pour savoir ce qu'il veut faire
 }
 
 /**
@@ -26,12 +29,12 @@ void connectHandler(socket_t *socket, aotp_request_t *requestData) {
  * \brief Fonction de gestion des requetes du protocole
  * Pour chaque requete il y un traitement specifique a effectuer
 */
-void requestHandler(socket_t *socket, aotp_request_t *requestData) {
+void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties) {
     AOTP_REQUEST action = requestData->action;
     switch (action) {
     case AOTP_CONNECT:
         //connecte le client et l'ajoute a la liste des clients
-        connectHandler(socket, requestData);
+        connectHandler(socket, requestData, clients);
         break;
     
     case AOTP_DISCONNECT:

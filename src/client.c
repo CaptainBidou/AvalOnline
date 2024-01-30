@@ -1,66 +1,37 @@
-/*#include "aotp.h"
-#include "data.h"
-#include "session.h"
-#include "syscall.h"*/
+#include "aotp.h"
+#include "mysyscall.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <pthread.h>
 
-#define PORT_SRV 8080
-#define IP_SRV "127.0.0.1"
 #define COULEUR(i)  printf("\e[%dm",i)
 #define COLOR_RESET  printf("\e[0m")
 #define RED  31 
 #define GREEN  32 
 #define BLUE 34 
 
-void clearBuffer() {
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF);
-}
+
+list_party_t *parties;         // Liste des parties en cours
+
+
+void clearBuffer();
+void loadingBar();
+void getPseudo(char *pseudo);
 
 int main() {
-
-    system("clear");
-    COULEUR(RED);
-    printf("------ Bienvenue sur AvalOnline ! ------ \n\n");
-    COLOR_RESET;
-
-    COULEUR(RED);
-    printf("Veuillez entrer votre pseudo : ");
-    COLOR_RESET;
-    COULEUR(GREEN);
     char pseudo[20];
-    fgets(pseudo, 20, stdin);
-    COLOR_RESET;
-    
-    // Suppression du \n à la fin du pseudo
-    int i = 0;
-    while (pseudo[i] != '\n') {
-        i++;
-    }
-    pseudo[i] = '\0';
+
+    getPseudo(pseudo);
+    system("clear");
+    // TODO : Requete de connexion
+
+
+    // TODO : Récupération de la réponse avec la liste des parties en cours
 
 
     // Barre de chargement
-    COULEUR(BLUE);
-    printf("\nRécupération des données en cours...\n");
-    for (i = 0; i < 100; i++) {
-        printf("\r");
-        printf("[");
-        for (int j = 0; j < i; j++) {
-            printf("=");
-        }
-        for (int j = 0; j < 100 - i; j++) {
-            printf(" ");
-        }
-        printf("] %d%%", i);
-        fflush(stdout);
-        usleep(10000);
-    }
-    printf("\n");
-    COLOR_RESET;
-
+    loadingBar();
     system("clear");
 
     COULEUR(RED);
@@ -98,18 +69,6 @@ int main() {
             COULEUR(RED);
             system("clear");
             printf("------ Création de la partie ------\n\n Veuillez entrer le nom de la partie : ");
-            COLOR_RESET;
-            COULEUR(GREEN);
-            char nomPartie[20];
-            clearBuffer(); ;
-            fgets(nomPartie, 20, stdin);
-            i = 0;
-            while (nomPartie[i] != '\n') {
-                i++;
-            }
-            nomPartie[i] = '\0';
-            COLOR_RESET;
-            printf("Nom partie : %s\n", nomPartie);
 
             // TODO : CREER PARTIE
             break;
@@ -137,4 +96,67 @@ int main() {
     }
     
 
+}
+
+
+void clearBuffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
+
+void loadingBar() {
+    // Barre de chargement
+    COULEUR(BLUE);
+    printf("\nRécupération des données en cours...\n");
+    for (int i = 0; i < 100; i++) {
+        printf("\r");
+        printf("[");
+        for (int j = 0; j < i; j++) {
+            printf("=");
+        }
+        for (int j = 0; j < 100 - i; j++) {
+            printf(" ");
+        }
+        printf("] %d%%", i);
+        fflush(stdout);
+        usleep(10000);
+    }
+    printf("\n");
+    COLOR_RESET;
+}
+
+void getPseudo(char *pseudo) {
+    system("clear");
+    COULEUR(RED);
+    printf("------ Bienvenue sur AvalOnline ! ------ \n\n");
+    COLOR_RESET;
+    COULEUR(RED);
+    printf("Veuillez entrer votre pseudo : ");
+    COLOR_RESET;
+    COULEUR(GREEN);
+    fgets(pseudo, 20, stdin);
+    COLOR_RESET;
+    // Suppression du \n à la fin du pseudo
+    int i = 0;
+    while (pseudo[i] != '\n') {
+        i++;
+    }
+    pseudo[i] = '\0';
+}
+
+void afficherParties() {
+    // afficher les parties de la liste
+
+    // Affichage des parties en cours
+    COULEUR(BLUE);
+    printf("\n\nParties en cours :\n");
+    // TODO : AFFICHER PARTIES EN COURS
+    printf("1. \e[0mPartie 1\n");
+    COULEUR(BLUE);
+    printf("2. \e[0mPartie 2\n");
+    COULEUR(BLUE);
+    printf("3. \e[0mPartie 3\n");
+    printf("\n\n");
+    COLOR_RESET;
 }

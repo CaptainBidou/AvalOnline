@@ -4,8 +4,8 @@
  *
  * La librairie syscall.h contient des fonctions de manipulation d'appels systèmes.
  */
-#ifndef __SYSCALL_H__
-#define __SYSCALL_H__
+#ifndef __MY_SYSCALL_H__
+#define __MY_SYSCALL_H__
 /* ------------------------------------------------------------------------ */
 /*                   E N T Ê T E S    S T A N D A R D S                     */
 /* ------------------------------------------------------------------------ */
@@ -76,29 +76,6 @@ typedef void *(*pf_t)(void *);
 /* ------------------------------------------------------------------------ */
 /*            P R O T O T Y P E S    D E    F O N C T I O N S               */
 /* ------------------------------------------------------------------------ */
-
-void addSignal(int signum, void *fonction, int flags);
-pid_t createSonFork();
-void killSonFork(pid_t pid);
-pthread_t createSonThread(void *fct, long i);
-void killSonThread(pthread_t thread);
-sem_t createSem(int token);
-sem_t *createNamedSem(int token, char *nom);
-sem_t *openNamedSem(char *nom);
-void tempo(int min, int max);
-void *createShmMemory(int fd, char *nom, int pageSize);
-void deleteShmMemory(void *e, int pageSize, int fd, char *nom);
-
-
-
-
-
-
-
-
-
-
-
 
 /**
  * @brief Fonction qui initialise un masque de signaux

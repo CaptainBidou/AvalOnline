@@ -8,7 +8,8 @@
 #define AOTP_H
 
 #define DEFAULT_AOTP_PORT 12345 /*!< Port par defaut du protocole */
-
+#define DEFAULT_AOTP_IP   "127.0.0.1" /*< ip par défaut*/
+#define DEFAULT_AOTP_MAX_CLIENTS 10 /*!< Nombre maximum de clients par defaut */
 #define AOTP_STRUCT_SEPARATOR '|' /*!< Separateur de champs de la requete */
 #define AOTP_EMPTY_LINE "::"      /*!< Ligne vide de la requete */
 #define AOTP_HEADER_SEPARATOR ':' /*!< Separateur de l'entete de la requete */
@@ -139,7 +140,7 @@ typedef struct
  * \brief Fonction de gestion des requetes du protocole
  * Pour chaque requete il y un traitement specifique a effectuer
  */
-void requestHandler(socket_t *socket, aotp_request_t *requestData);
+void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties);
 
 /**
  * \fn void struct2Request(aotp_request_t *request, char *buffer);
@@ -260,10 +261,5 @@ void addParty(list_party_t **head, party_t *party);
  */
 void removeParty(list_party_t **list, party_t *party);
 
-#endif
 
-/* ------------------------------------------------------------------------ */
-/*              D É C L A R A T I O N    D E    V A R I A B L E S           */
-/* ------------------------------------------------------------------------ */
-list_client_t *clients = NULL; // Liste des clients connectes
-list_party_t *parties;         // Liste des parties en cours
+#endif

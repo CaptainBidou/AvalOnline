@@ -5,6 +5,9 @@
  * La bibliothèque avalam contient les fonctions de manipulation des positions, des coups et des scores.
 */
 
+#ifndef AVALAM_H
+#define AVALAM_H
+
 #define FAUX 0
 #define VRAI 1
 
@@ -254,5 +257,7 @@ score_t evaluerScore(position_t p);
  * \param s score à afficher
  * \see score_t
 */
-void afficherScore(score_t s); 
+void afficherScore(score_t s);
+
+#endif
 

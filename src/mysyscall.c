@@ -1,4 +1,4 @@
-#include "syscall.h"
+#include "mysyscall.h"
 /* SECTION 1 : Gestion des signaux */
 /*
 void install_signal_handler(int signalNumber, void (*handler)(int), int flags) {
@@ -130,8 +130,12 @@ void display_pthread_attr(pthread_attr_t *attr, char *prefix)
 }
 
 /**
- * @brief Fonction qui créer un thread avec un numéro
- * @details La fonction créer un thread
+ * \fn Fonction qui créer un thread avec un numéro
+ * \details La fonction créer un thread avec un numéro
+ * \param thread Le thread à créer
+ * \param start_routine La fonction à exécuter
+ * \param thread_number Le numéro du thread
+ * \return void
  */
 pthread_t create_thread(pthread_t *thread, void *(*start_routine)(void *), long thread_number)
 {
@@ -141,7 +145,7 @@ pthread_t create_thread(pthread_t *thread, void *(*start_routine)(void *), long 
 
     // Initialisation de l'attribut du thread
     pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE); // On rend le thread détachable
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED); // On met le thread en mode detached
 
     // Création du thread
     CHECK_T(tid = pthread_create(thread, &attr, start_routine, (void *)thread_number), "pthread_create");
