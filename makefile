@@ -11,7 +11,7 @@ PROGLIST= server client
 PROGRAMMES=$(addprefix $(BIN_DIR)/, $(PROGLIST))
 
 
-all: $(PROGRAMMES) doc
+all: $(PROGRAMMES)
 	@echo "Compilation terminee"
 
 

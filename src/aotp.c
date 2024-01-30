@@ -1,5 +1,22 @@
 #include "aotp.h"
 
+/**
+ * \fn void connectClientToHost(socket, requestData);
+ * \brief Fonction de création d'une partie
+ * \param socket Socket du client
+ * \param requestData Requete de connexion du client
+ */
+void connectClientToHost(socket_t *socket, aotp_request_t *requestData);
+
+
+/**
+ * \fn party_t *createParty(socket, requestData);
+ * \brief Fonction de création d'une partie
+ * \param socket Socket du client
+ * \param requestData Requete de connexion du client
+ * \return party_t *party
+ */
+party_t *createParty(socket_t *socket, aotp_request_t *requestData);
 
 /**
  * \fn void connectHandler(socket_t *socket, aotp_request_t *requestData);
@@ -40,7 +57,7 @@ void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t
 
     case AOTP_DISCONNECT:
         // supprime le client de la liste
-        supprClient(&clients, requestData->client_id);
+        
         break;
 
     case AOTP_CREATE_PARTY:
@@ -48,7 +65,7 @@ void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t
         party_t *party = createParty(socket, requestData);
 
         // ajoute la partie a la liste des parties
-        addParty(&parties, party);
+        addParty(parties, party);
 
         break;
 
@@ -504,45 +521,13 @@ void removeParty(list_party_t **list, party_t *party)
 }
 
 /**
- * \fn void supprClient(&clients, requestData->client_id);
- * \brief Fonction de suppression d'un client d'une liste de clients
- * \param clients Liste des clients
- * \param id Identifiant du client a supprimer
- */
-void supprClient(list_client_t **clients, short id)
-{
-
-    list_client_t *current = clients;
-    list_client_t *previous = NULL;
-    while (current != NULL)
-    {
-        if (current->client->id == id)
-        {
-            if (previous == NULL)
-            {
-                clients = current->next;
-            }
-            else
-            {
-                previous->next = current->next;
-            }
-            free(current);
-            break;
-        }
-        previous = current;
-        current = current->next;
-    }
-}
-
-/**
  * \fn party_t *createParty(socket, requestData);
  * \brief Fonction de création d'une partie
  * \param socket Socket du client
  * \param requestData Requete de connexion du client
  * \return party_t *party
  */
-party_t *createParty(socket_t *socket, aotp_request_t *requestData)
-{
+party_t *createParty(socket_t *socket, aotp_request_t *requestData) {
     // TODO : créer la partie
     return NULL;
 }
