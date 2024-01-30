@@ -16,11 +16,11 @@ list_party_t *parties; // Liste des parties en cours
 void clearBuffer();
 void loadingBar();
 void getPseudo(char *pseudo);
+void menu();
 
 int main()
 {
     char pseudo[20];
-
     getPseudo(pseudo);
     system("clear");
     // TODO : Requete de connexion
@@ -37,47 +37,44 @@ int main()
     // Affichage des parties en cours
     afficherParties();
 
-    COULEUR(RED);
-    printf("Que voulez-vous faire ?\n\n");
-    printf("1. Créer une partie\n");
-    printf("2. Rejoindre une partie\n");
-    printf("3. Quitter\n\n");
-    printf("Votre choix : ");
+    while(1){
+        menu();
 
-    COULEUR(GREEN);
-    fflush(stdin);
-    int choix = fgetc(stdin);
-    COLOR_RESET;
-    switch (choix)
-    {
-    case '1':
-        COULEUR(RED);
-        system("clear");
-        printf("------ Création de la partie ------\n\n Veuillez entrer le nom de la partie : ");
-
-        // TODO : CREER PARTIE
-        break;
-    case '2':
-        COULEUR(RED);
-        printf("------ Rejoindre une partie ------\n\n Veuillez entrer le numéro de la partie à rejoindre : ");
-        COLOR_RESET;
         COULEUR(GREEN);
-        clearBuffer();
-        char numPartie = fgetc(stdin);
-        printf("Num partie : %c\n", numPartie);
-        // TODO : REJOINDRE PARTIE
-        break;
-    case '3':
-        COULEUR(RED);
-        printf("Ah ché genant\n");
+        fflush(stdin);
+        char choix = fgetc(stdin);
         COLOR_RESET;
-        exit(0);
-        break;
-    default:
-        COULEUR(RED);
-        printf("Ce choix n'est pas valide\n");
-        COLOR_RESET;
-        break;
+
+        switch (choix){
+        case '1':
+            COULEUR(RED);
+            system("clear");
+            printf("------ Création de la partie ------\n\n");
+
+            // TODO : CREER PARTIE
+            break;
+        case '2':
+            COULEUR(RED);
+            printf("------ Rejoindre une partie ------\n\n Veuillez entrer le numéro de la partie à rejoindre : ");
+            COLOR_RESET;
+            COULEUR(GREEN);
+            clearBuffer();
+            char numPartie = fgetc(stdin);
+            printf("Num partie : %c\n", numPartie);
+            // TODO : REJOINDRE PARTIE
+            break;
+        case '3':
+            COULEUR(RED);
+            printf("Ah ché genant\n");
+            COLOR_RESET;
+            exit(0);
+            break;
+        default:
+            COULEUR(RED);
+            printf("\nCe choix n'est pas valide\n");
+            COLOR_RESET;
+            break;
+        }
     }
 }
 
@@ -135,9 +132,7 @@ void getPseudo(char *pseudo)
 }
 
 void afficherParties()
-{
-    // afficher les parties de la liste
-
+{   
     // Affichage des parties en cours
     COULEUR(BLUE);
     printf("\n\nParties en cours :\n");
@@ -148,5 +143,15 @@ void afficherParties()
     COULEUR(BLUE);
     printf("3. \e[0mPartie 3\n");
     printf("\n\n");
+    COLOR_RESET;
+}
+
+void menu(){
+    COULEUR(RED);
+    printf("Que voulez-vous faire ?\n\n");
+    printf("1. Créer une partie\n");
+    printf("2. Rejoindre une partie\n");
+    printf("3. Quitter\n\n");
+    printf("Votre choix : ");
     COLOR_RESET;
 }
