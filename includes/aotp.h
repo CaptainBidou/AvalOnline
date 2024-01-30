@@ -7,12 +7,12 @@
 #ifndef AOTP_H
 #define AOTP_H
 
-#define DEFAULT_AOTP_PORT 12345 /*!< Port par defaut du protocole */
-#define DEFAULT_AOTP_IP   "127.0.0.1" /*< ip par défaut*/
+#define DEFAULT_AOTP_PORT 12345     /*!< Port par defaut du protocole */
+#define DEFAULT_AOTP_IP "127.0.0.1" /*< ip par défaut*/
 #define DEFAULT_AOTP_MAX_CLIENTS 10 /*!< Nombre maximum de clients par defaut */
-#define AOTP_STRUCT_SEPARATOR '|' /*!< Separateur de champs de la requete */
-#define AOTP_EMPTY_LINE "::"      /*!< Ligne vide de la requete */
-#define AOTP_HEADER_SEPARATOR ':' /*!< Separateur de l'entete de la requete */
+#define AOTP_STRUCT_SEPARATOR '|'   /*!< Separateur de champs de la requete */
+#define AOTP_EMPTY_LINE "::"        /*!< Ligne vide de la requete */
+#define AOTP_HEADER_SEPARATOR ':'   /*!< Separateur de l'entete de la requete */
 
 #include "session.h"
 #include "avalam.h"
@@ -32,6 +32,7 @@ typedef enum
     PARTY_WAITING = 0, /*!< Partie en attente de joueurs */
     PARTY_PLAYING,     /*!< Partie en cours */
     PARTY_FINISHED,    /*!< Partie terminee */
+    PARTY_UNKOWN,      /*!< Etat inconnu */
 } party_state_t;       /*!< Structure de l'etat d'une partie */
 
 /**
@@ -97,8 +98,8 @@ typedef struct
     char pseudo[20];           /*!< Pseudo du client */
     party_id_t party_id;       /*!< Identifiant de la partie */
     party_state_t party_state; /*!< Etat de la partie */
-    coup_t coup;               /*!< Coup a jouer */
-    evolution_t evolution;     /*!< Evolution a jouer */
+    coup_t *coup;              /*!< Coup a jouer */
+    evolution_t *evolution;    /*!< Evolution a jouer */
 } aotp_request_t;              /*!< Structure de requete du protocole */
 
 /**
@@ -262,5 +263,18 @@ void addParty(list_party_t **head, party_t *party);
  */
 void removeParty(list_party_t **list, party_t *party);
 
+/**
+ * \fn void initRequest()
+ * \brief Fonction qui créé une requête
+ * \param AOTP_REQUEST action;       !< Code de la requete
+ * \param short client_id;           !< Identifiant du client
+ * \param char pseudo[20];           !< Pseudo du client
+ * \param party_id_t party_id;       !< Identifiant de la partie
+ * \param party_state_t party_state; !< Etat de la partie
+ * \param coup_t coup;               !< Coup a jouer
+ * \param evolution_t evolution;     !< Evolution a jouer
+ * \param
+ */
+void initRequest(AOTP_REQUEST action, short client_id, char *pseudo, party_id_t party_id, party_state_t party_state, coup_t *coup, evolution_t *evolution);
 
 #endif

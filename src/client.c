@@ -11,22 +11,35 @@
 #define GREEN 32
 #define BLUE 34
 
+#define CHECK_SERVER 1
+#define HOST_SERVER 2
+
 list_party_t *parties; // Liste des parties en cours
+client_t *client;      // Client courant
 
 void clearBuffer();
 void loadingBar();
 void getPseudo(char *pseudo);
+void afficherParties();
+void connectClientToServer(int request, party_t *party, char *pseudo);
+void sendRequest(AOTP_REQUEST action, short client_id, char *pseudo, party_id_t party_id, party_state_t party_state, coup_t *coup, evolution_t *evolution);
 void menu();
 void afficherParties();
 
 int main()
 {
     char pseudo[20];
+    parties = NULL;
+
     getPseudo(pseudo);
     system("clear");
-    // TODO : Requete de connexion
 
-    // TODO : Récupération de la réponse avec la liste des parties en cours
+    // Requete de connexion au serv d'enregistrement
+    connectClientToServer(CHECK_SERVER, NULL, pseudo);
+
+    // Récupération de la réponse avec la liste des parties en cours
+    sendRequest(AOTP_LIST_PARTIES, client->id, pseudo, -1, 0, NULL, NULL);
+    aotp_response_t *response = malloc(sizeof(aotp_response_t));
 
     // Barre de chargement
     loadingBar();
@@ -151,12 +164,22 @@ void afficherParties()
     COLOR_RESET;
 }
 
-void menu(){
-    COULEUR(RED);
-    printf("Que voulez-vous faire ?\n\n");
-    printf("1. Créer une partie\n");
-    printf("2. Rejoindre une partie\n");
-    printf("3. Quitter\n\n");
-    printf("Votre choix : ");
-    COLOR_RESET;
+void connectClientToServer(int request, party_t *party, char *pseudo)
+{
 }
+
+void sendRequest(AOTP_REQUEST action, short client_id, char *pseudo, party_id_t party_id, party_state_t party_state, coup_t *coup, evolution_t *evolution)
+{
+    initRequest(action, client_id, pseudo, party_id, party_state, coup, evolution);
+}
+
+/*typedef struct
+AOTP_REQUEST action;       !< Code de la requete
+short client_id;           !< Identifiant du client
+char pseudo[20];           !< Pseudo du client
+party_id_t party_id;       !< Identifiant de la partie
+party_state_t party_state; !< Etat de la partie
+coup_t coup;               !< Coup a jouer
+evolution_t evolution;     !< Evolution a jouer
+aotp_request_t;            !< Structure de requete du protocole
+*/
