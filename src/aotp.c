@@ -8,7 +8,6 @@
  */
 void connectClientToHost(socket_t *socket, aotp_request_t *requestData);
 
-
 /**
  * \fn party_t *createParty(socket, requestData);
  * \brief Fonction de création d'une partie
@@ -59,7 +58,7 @@ void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t
 
     case AOTP_DISCONNECT:
         // supprime le client de la liste
-        
+
         break;
 
     case AOTP_CREATE_PARTY:
@@ -529,7 +528,8 @@ void removeParty(list_party_t **list, party_t *party)
  * \param requestData Requete de connexion du client
  * \return party_t *party
  */
-party_t *createParty(socket_t *socket, aotp_request_t *requestData) {
+party_t *createParty(socket_t *socket, aotp_request_t *requestData)
+{
     // TODO : créer la partie
     return NULL;
 }
@@ -543,4 +543,28 @@ party_t *createParty(socket_t *socket, aotp_request_t *requestData) {
 void connectClientToHost(socket_t *socket, aotp_request_t *requestData)
 {
     // TODO : connecter le client à l'hote
+}
+
+/**
+ * \fn void initRequest()
+ * \brief Fonction qui créé une requête
+ * \param AOTP_REQUEST action;       !< Code de la requete
+ * \param short client_id;           !< Identifiant du client
+ * \param char pseudo[20];           !< Pseudo du client
+ * \param party_id_t party_id;       !< Identifiant de la partie
+ * \param party_state_t party_state; !< Etat de la partie
+ * \param coup_t* coup;               !< Coup a jouer
+ * \param evolution_t* evolution;     !< Evolution a jouer
+ * \param
+ */
+void initRequest(AOTP_REQUEST action, short client_id, char *pseudo, party_id_t party_id, party_state_t party_state, coup_t *coup, evolution_t *evolution)
+{
+    aotp_request_t *request = malloc(sizeof(aotp_request_t));
+    request->action = action;
+    request->client_id = client_id;
+    strncpy(request->pseudo, pseudo, 20);
+    request->party_id = party_id;
+    request->party_state = party_state;
+    request->coup = coup;
+    request->evolution = evolution;
 }
