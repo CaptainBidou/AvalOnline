@@ -5,12 +5,12 @@
 #ifndef AOTP_H
 #define AOTP_H
 
-#define DEFAULT_AOTP_PORT 12345 /*!< Port par defaut du protocole */
-#define DEFAULT_AOTP_IP   "127.0.0.1" /*< ip par défaut*/
+#define DEFAULT_AOTP_PORT 12345     /*!< Port par defaut du protocole */
+#define DEFAULT_AOTP_IP "127.0.0.1" /*< ip par défaut*/
 #define DEFAULT_AOTP_MAX_CLIENTS 10 /*!< Nombre maximum de clients par defaut */
-#define AOTP_STRUCT_SEPARATOR '|' /*!< Separateur de champs de la requete */
-#define AOTP_EMPTY_LINE "::"      /*!< Ligne vide de la requete */
-#define AOTP_HEADER_SEPARATOR ':' /*!< Separateur de l'entete de la requete */
+#define AOTP_STRUCT_SEPARATOR '|'   /*!< Separateur de champs de la requete */
+#define AOTP_EMPTY_LINE "::"        /*!< Ligne vide de la requete */
+#define AOTP_HEADER_SEPARATOR ':'   /*!< Separateur de l'entete de la requete */
 
 #include "session.h"
 #include "avalam.h"
@@ -32,6 +32,7 @@ typedef enum
     PARTY_WAITING = 0, /*!< Partie en attente de joueurs */
     PARTY_PLAYING,     /*!< Partie en cours */
     PARTY_FINISHED,    /*!< Partie terminee */
+    PARTY_UNKOWN,      /*!< Etat inconnu */
 } party_state_t;       /*!< Structure de l'etat d'une partie */
 
 /**
@@ -97,8 +98,8 @@ typedef struct
     char pseudo[20];           /*!< Pseudo du client */
     party_id_t party_id;       /*!< Identifiant de la partie */
     party_state_t party_state; /*!< Etat de la partie */
-    coup_t coup;               /*!< Coup a jouer */
-    evolution_t evolution;     /*!< Evolution a jouer */
+    coup_t *coup;              /*!< Coup a jouer */
+    evolution_t *evolution;    /*!< Evolution a jouer */
 } aotp_request_t;              /*!< Structure de requete du protocole */
 
 /**
@@ -108,6 +109,7 @@ typedef struct
 typedef struct
 {
     party_id_t id;       /*!< Identifiant de la partie */
+    char pseudo[20];     /*!< Pseudo de l'hote */
     char host_ip[16];    /*!< Adresse IP de l'hote */
     short host_port;     /*!< Port de l'hote */
     char host_pseudo[20]; /*!< Pseudo de l'hote */
@@ -307,5 +309,55 @@ aotp_request_t *createRequest(AOTP_REQUEST action);
  */ 
 char *partyState2String(party_state_t state);
 
+/**
+ * \fn short generateClientId() 
+ * \brief Fonction de generation d'un identifiant unique pour un client
+ * \return Identifiant unique
+ */
+int generateClientId();
+
+
+/**
+ * \fn client_t *getClientById(list_client_t *list, int id);
+ * \brief Fonction de recuperation d'un client par son identifiant
+ * \param list Liste de clients
+ * \param id Identifiant du client
+ * \return Client correspondant a l'identifiant ou NULL
+ */
+client_t *getClientById(list_client_t *list, int id);
+
+/**
+ * \fn party_t *getPartyById(list_party_t *list, party_id_t id);
+ * \brief Fonction de recuperation d'une partie par son identifiant
+ * \param list Liste de parties
+ * \param id Identifiant de la partie
+ * \return Partie correspondante a l'identifiant ou NULL
+ */
+party_t *getPartyById(list_party_t *list, party_id_t id);
+
+
+/**
+ * \fn aotp_request_t *createRequest(AOTP_REQUEST action);
+ * \brief Fonction de creation d'une requete
+ * \param action Code de la requete
+ */
+aotp_request_t *createRequest(AOTP_REQUEST action);
+
+
+/**
+ * \fn char *partyState2String(party_state_t state);
+ * \brief Transforme un status de partie en chaine de caractères
+ * \param state Etat de la partie
+ * \return Chaine de caractères correspondant à l'état de la partie
+ * \note la chaine de caractères est allouée dynamiquement, il faut donc la libérer après utilisation
+ */ 
+char *partyState2String(party_state_t state);
+
+/**
+ * \fn void initRequest()
+ * \brief Fonction qui créé une requête
+ * \param AOTP_REQUEST action;       !< Code de la requete
+ */
+void initRequest(AOTP_REQUEST action);
 
 #endif

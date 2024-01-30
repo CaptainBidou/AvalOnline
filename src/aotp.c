@@ -8,7 +8,6 @@
  */
 void connectClientToHost(socket_t *socket, aotp_request_t *requestData);
 
-
 /**
  * \fn party_t *createParty(socket, requestData);
  * \brief Fonction de création d'une partie
@@ -52,8 +51,9 @@ void connectHandler(socket_t *socket, aotp_request_t *requestData, list_client_t
  * \fn void requestHandler(socket_t *socket, aotp_request_t *requestData)
  * \brief Fonction de gestion des requetes du protocole
  * Pour chaque requete il y un traitement specifique a effectuer
-*/
-void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties) {
+ */
+void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties)
+{
     AOTP_REQUEST action = requestData->action;
     switch (action)
     {
@@ -498,7 +498,8 @@ void removeParty(list_party_t **list, party_t *party) {
  * \param requestData Requete de connexion du client
  * \return party_t *party
  */
-party_t *createParty(socket_t *socket, aotp_request_t *requestData) {
+party_t *createParty(socket_t *socket, aotp_request_t *requestData)
+{
     // TODO : créer la partie
     return NULL;
 }
