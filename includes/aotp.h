@@ -139,7 +139,7 @@ typedef struct
  * \brief Fonction de gestion des requetes du protocole
  * Pour chaque requete il y un traitement specifique a effectuer
  */
-void requestHandler(socket_t *socket, aotp_request_t *requestData);
+void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t *clients);
 
 /**
  * \fn void struct2Request(aotp_request_t *request, char *buffer);
