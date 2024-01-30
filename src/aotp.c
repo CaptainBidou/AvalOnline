@@ -25,8 +25,9 @@ party_t *createParty(socket_t *socket, aotp_request_t *requestData);
  * \param requestData Requete de connexion du client
  * \note Cette fonction est appelee lors de la reception d'une requete de connexion
  * \warning lors de la creation d'un client, une allocation dynamique est effectuee
-*/
-void connectHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients) {
+ */
+void connectHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients)
+{
     // Creation d'un nouveau client
     client_t *client = malloc(sizeof(client_t));
     clientInit(client, requestData->client_id, requestData->pseudo, *socket);
@@ -45,13 +46,14 @@ void connectHandler(socket_t *socket, aotp_request_t *requestData, list_client_t
  * \fn void requestHandler(socket_t *socket, aotp_request_t *requestData)
  * \brief Fonction de gestion des requetes du protocole
  * Pour chaque requete il y un traitement specifique a effectuer
-*/
-void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties) {
+ */
+void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties)
+{
     AOTP_REQUEST action = requestData->action;
     switch (action)
     {
     case AOTP_CONNECT:
-        //connecte le client et l'ajoute a la liste des clients
+        // connecte le client et l'ajoute a la liste des clients
         connectHandler(socket, requestData, clients);
         break;
 
