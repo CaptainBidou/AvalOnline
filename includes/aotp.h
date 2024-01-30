@@ -1,8 +1,6 @@
 /**
  * \file proto.h
  * \brief Fichier d'en-tête de la libriairie de notre protocole AOTP (Avalam Online Transfer Protocol)
- *
- *
  */
 #ifndef AOTP_H
 #define AOTP_H
@@ -16,6 +14,8 @@
 
 #include "session.h"
 #include "avalam.h"
+#include "data.h"
+#include "time.h"
 
 /* ------------------------------------------------------------------------ */
 /*              D É F I N I T I O N S   D E   T Y P E S                     */
@@ -75,7 +75,7 @@ typedef enum
  */
 typedef struct
 {
-    short id;        /*!< Identifiant du client */
+    int id;        /*!< Identifiant du client */
     char pseudo[20]; /*!< Pseudo du client */
     socket_t socket; /*!< Socket du client */
 } client_t;          /*!< Structure d'un client */
@@ -93,7 +93,7 @@ typedef struct client_node
 typedef struct
 {
     AOTP_REQUEST action;       /*!< Code de la requete */
-    short client_id;           /*!< Identifiant du client */
+    int client_id;           /*!< Identifiant du client */
     char pseudo[20];           /*!< Pseudo du client */
     party_id_t party_id;       /*!< Identifiant de la partie */
     party_state_t party_state; /*!< Etat de la partie */
@@ -110,6 +110,7 @@ typedef struct
     party_id_t id;       /*!< Identifiant de la partie */
     char host_ip[16];    /*!< Adresse IP de l'hote */
     short host_port;     /*!< Port de l'hote */
+    char host_pseudo[20]; /*!< Pseudo de l'hote */
     party_state_t state; /*!< Etat de la partie */
 } party_t;               /*!< Structure d'une partie */
 
@@ -127,6 +128,7 @@ typedef struct
 {
     AOTP_RESPONSE code;      /*!< Code de retour */
     char response_desc[100]; /*!< Description de la reponse */
+    int client_id;
     list_party_t *parties;
     position_t *position;
 } aotp_response_t; /*!< Structure de reponse du protocole */
@@ -164,14 +166,14 @@ void request2Struct(char *buffer, aotp_request_t *request);
 /* ------------------------------------------------------------------------ */
 
 /**
- * \fn void clientInit(client_t *client, short id, char *pseudo, socket_t socket);
+ * \fn void clientInit(client_t *client, int id, char *pseudo, socket_t socket);
  * \brief Fonction d'initialisation d'un client
  * \param client Client a initialiser
  * \param id Identifiant du client
  * \param pseudo Pseudo du client
  * \param socket Socket du client
  */
-void clientInit(client_t *client, short id, char *pseudo, socket_t socket);
+void clientInit(client_t *client, int id, char *pseudo, socket_t socket);
 
 /* ------------------------------------------------------------------------ */
 /*            M A N I P U L A T I O N    D E    P A R T I E S               */
@@ -208,7 +210,7 @@ void addClient(list_client_t **head, client_t *client);
  * \param list Liste de clients
  * \param client Client a supprimer
  */
-void removeClient(list_client_t **head, client_t *client);
+void removeClient(list_client_t **head, int client_id);
 
 /**
  * \fn void initResponse(aotp_response_t *response, AOTP_RESPONSE code, list_party_t *parties, position_t *position);
@@ -260,6 +262,50 @@ void addParty(list_party_t **head, party_t *party);
  * \param party Partie a supprimer
  */
 void removeParty(list_party_t **list, party_t *party);
+
+/**
+ * \fn short generateClientId() 
+ * \brief Fonction de generation d'un identifiant unique pour un client
+ * \return Identifiant unique
+ */
+int generateClientId();
+
+
+/**
+ * \fn client_t *getClientById(list_client_t *list, int id);
+ * \brief Fonction de recuperation d'un client par son identifiant
+ * \param list Liste de clients
+ * \param id Identifiant du client
+ * \return Client correspondant a l'identifiant ou NULL
+ */
+client_t *getClientById(list_client_t *list, int id);
+
+/**
+ * \fn party_t *getPartyById(list_party_t *list, party_id_t id);
+ * \brief Fonction de recuperation d'une partie par son identifiant
+ * \param list Liste de parties
+ * \param id Identifiant de la partie
+ * \return Partie correspondante a l'identifiant ou NULL
+ */
+party_t *getPartyById(list_party_t *list, party_id_t id);
+
+
+/**
+ * \fn aotp_request_t *createRequest(AOTP_REQUEST action);
+ * \brief Fonction de creation d'une requete
+ * \param action Code de la requete
+ */
+aotp_request_t *createRequest(AOTP_REQUEST action);
+
+
+/**
+ * \fn char *partyState2String(party_state_t state);
+ * \brief Transforme un status de partie en chaine de caractères
+ * \param state Etat de la partie
+ * \return Chaine de caractères correspondant à l'état de la partie
+ * \note la chaine de caractères est allouée dynamiquement, il faut donc la libérer après utilisation
+ */ 
+char *partyState2String(party_state_t state);
 
 
 #endif
