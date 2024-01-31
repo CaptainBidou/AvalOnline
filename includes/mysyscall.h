@@ -152,4 +152,34 @@ void close_named_sem(sem_t *sem);
  */
 void unlink_named_sem(char *name);
 
+
+/**
+ * \fn sem_t *create_sem(int value);
+ * \brief Fonction de creation d'une semaphore anonyme
+ * \param value Valeur initiale de la semaphore
+ * \return La semaphore creee
+ */
+sem_t *create_sem(int value);
+
+/**
+ * \fn void destroy_sem(sem_t *sem);
+ * \brief Fonction de destruction d'une semaphore
+ * \param sem Semaphore a detruire
+ */
+void destroy_sem(sem_t *sem);
+
+/**
+ * \fn void wait_sem(sem_t *sem);
+ * \brief Fonction d'attente sur une semaphore
+ * \param sem Semaphore sur laquelle attendre
+ */
+void wait_sem(sem_t *sem);
+
+/**
+ * \fn void post_sem(sem_t *sem);
+ * \brief Fonction de post sur une semaphore
+ * \param sem Semaphore sur laquelle poster
+ */
+void post_sem(sem_t *sem);
+
 #endif

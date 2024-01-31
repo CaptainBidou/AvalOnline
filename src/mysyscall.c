@@ -137,8 +137,7 @@ void display_pthread_attr(pthread_attr_t *attr, char *prefix)
  * \param thread_number Le numéro du thread
  * \return void
  */
-pthread_t create_thread(pthread_t *thread, void *(*start_routine)(void *), long thread_number)
-{
+pthread_t create_thread(pthread_t *thread, void *(*start_routine)(void *), long thread_number) {
     // Creation de l'attribut du thread
     pthread_attr_t attr;
     pthread_t tid;
@@ -159,8 +158,7 @@ pthread_t create_thread(pthread_t *thread, void *(*start_routine)(void *), long 
 /**
  * @brief Fonction qui créer une sémaphore nommé
  */
-sem_t *create_named_sem(char *name, int value)
-{
+sem_t *create_named_sem(char *name, int value) {
     sem_t *sem = sem_open(name, O_CREAT | O_EXCL, 0666, value);
 
     return sem;
@@ -170,8 +168,7 @@ sem_t *create_named_sem(char *name, int value)
  * @brief Fonction qui ouvre une sémaphore nommé
  * @details la sémpahore doit être créé avant
  */
-sem_t *open_named_sem(char *name)
-{
+sem_t *open_named_sem(char *name) {
     sem_t *sem = sem_open(name, 0);
     CHECK_SEM_OPEN(sem, "Erreur lors de l'ouverture de la sémaphore nommé.\n");
     return sem;
@@ -180,15 +177,52 @@ sem_t *open_named_sem(char *name)
 /**
  * @brief Fonction qui ferme une sémaphore nommé
  */
-void close_named_sem(sem_t *sem)
-{
+void close_named_sem(sem_t *sem) {
     CHECK(sem_close(sem), "Erreur lors de la fermeture de la sémaphore nommé.\n");
 }
 
 /**
  * @brief Fonction qui supprime une sémaphore nommé
  */
-void unlink_named_sem(char *name)
-{
+void unlink_named_sem(char *name) {
     CHECK(sem_unlink(name), "Erreur lors de la suppression de la sémaphore nommé.\n");
+}
+
+/**
+ * \fn sem_t *create_sem(int value);
+ * \brief Fonction de creation d'une semaphore anonyme
+ * \param value Valeur initiale de la semaphore
+ * \return La semaphore creee
+ */
+sem_t *create_sem(int value) {
+    sem_t *sem = malloc(sizeof(sem_t));
+    CHECK(sem_init(sem, 0, value), "SEM_INIT");
+    return sem;
+}
+
+/**
+ * \fn void destroy_sem(sem_t *sem);
+ * \brief Fonction de destruction d'une semaphore
+ * \param sem Semaphore a detruire
+ */
+void destroy_sem(sem_t *sem) {
+    CHECK(sem_destroy(sem), "SEM_DESTROY");
+}
+
+/**
+ * \fn void wait_sem(sem_t *sem);
+ * \brief Fonction d'attente sur une semaphore
+ * \param sem Semaphore sur laquelle attendre
+ */
+void wait_sem(sem_t *sem) {
+    CHECK(sem_wait(sem), "SEM_WAIT");
+}
+
+/**
+ * \fn void post_sem(sem_t *sem);
+ * \brief Fonction de post sur une semaphore
+ * \param sem Semaphore sur laquelle poster
+ */
+void post_sem(sem_t *sem) {
+    CHECK(sem_post(sem), "SEM_POST");
 }

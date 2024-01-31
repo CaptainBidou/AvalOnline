@@ -207,7 +207,7 @@ socket_t *acceptClient(socket_t *sock) {
  * \param ip : adresse ip du serveur (passée par adresse)
  * \param port : port du serveur (passé par adresse)
 */
-void getServerAddress(int argc, char **argv, char **ip, int *port) {
+void getServerAddress(int argc, char **argv, char **ip, short *port) {
     // Vérification du nombre d'arguments
     if (argc < 3) {
         // Si pas assez d'arguments, on affiche l'usage et on quitte
@@ -217,7 +217,7 @@ void getServerAddress(int argc, char **argv, char **ip, int *port) {
     
     SESSION_DEBUG_PRINT("Adresse du serveur: %s:%d\n", argv[1], atoi(argv[2]));
     *ip = argv[1];
-    *port = atoi(argv[2]);
+    *port = (short) atoi(argv[2]);
 }
 
 /**

@@ -161,7 +161,7 @@ socket_t *acceptClient(socket_t *sock);
  * \param ip : adresse ip du serveur (passée par adresse)
  * \param port : port du serveur (passé par adresse)
 */
-void getServerAddress(int argc, char **argv, char **ip, int *port);
+void getServerAddress(int argc, char **argv, char **ip, short *port);
 
 
 /**
