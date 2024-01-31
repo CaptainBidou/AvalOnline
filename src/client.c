@@ -15,57 +15,31 @@
 #define HOST_SERVER 2
 
 list_party_t *parties = NULL;         // Liste des parties en cours
-
+client_t *client = NULL;
 
 void clearBuffer();
 void loadingBar();
 void getPseudo(char *pseudo);
 void afficherParties();
 void connReq(char *pseudo, char *serverAddress, short serverPort);
+list_party_t* listPartyReq(char *pseudo,char *serverAddress, short serverPort);
 
-socket_t se, sd; // Socket d'écoute et socket de dialogue
+socket_t se, sd; // Socket pour l'host d'écoute et socket de dialogue
 
 
 int main(int argc, char *argv[]) {
     char pseudo[20];
     char *serverAddress;
     short serverPort;
-
-    // Creation de parties de test
-    // TODO : A SUPPRIMER
-    party_t *p1 = malloc(sizeof(party_t));
-    p1->id = 1;
-    p1->host_port = 0;
-    p1->state = PARTY_WAITING;
-    strcpy(p1->host_pseudo, "Lukas");
-    party_t *p2 = malloc(sizeof(party_t));
-    p2->id = 2;
-    p2->host_port = 0;
-    p2->state = PARTY_PLAYING;
-    strcpy(p2->host_pseudo, "Tomas");
-
-    party_t *p3 = malloc(sizeof(party_t));
-    p3->id = 3;
-    p3->host_port = 0;
-    p3->state = PARTY_WAITING;
-    strcpy(p3->host_pseudo, "Arthur");
-
-    addParty(&parties, p1);
-    addParty(&parties, p2);
-    addParty(&parties, p3);
-
+    client = malloc(sizeof(client_t));
 
     // Récupération des arguments
     getServerAddress(argc, argv, &serverAddress, &serverPort);
     getPseudo(pseudo);
     system("clear");
+    connReq(pseudo, serverAddress, serverPort);
 
-    // Requete de connexion au serv d'enregistrement
-    connectClientToServer(CHECK_SERVER, NULL, pseudo);
-
-    // Récupération de la réponse avec la liste des parties en cours
-    sendRequest(AOTP_LIST_PARTIES, client->id, pseudo, -1, 0, NULL, NULL);
-    aotp_response_t *response = malloc(sizeof(aotp_response_t));
+    parties = listPartyReq(pseudo,serverAddress,serverPort);
 
     // Barre de chargement
     loadingBar();
@@ -211,9 +185,45 @@ void connReq(char *pseudo, char *serverAddress, short serverPort) {
     if(response->code == AOTP_OK) {
         printf("Connexion réussie !\n");
         printf("Votre ID : %d\n", response->client_id);
+        client->id = response->client_id;
+        
     }
     // Libération de la mémoire
     free(response);
     free(request);
     freeSocket(socket);
+}
+
+
+list_party_t* listPartyReq(char *pseudo,char *serverAddress, short serverPort){
+    // Création de la socket
+    socket_t *socket = connectToServer(serverAddress, serverPort);
+
+    // Envoi de la requête de connexion
+    aotp_request_t *request = createRequest(AOTP_LIST_PARTIES);
+    strcpy(request->pseudo, pseudo);
+    request->client_id = client->id;
+    send_data(socket, request, (serialize_t) struct2Request);
+
+    // Réception de la réponse
+    aotp_response_t *response = malloc(sizeof(aotp_response_t));
+    recv_data(socket, response, (serialize_t) response2Struct);
+
+    // Vérification de la réponse
+    // TODO : Remplacer par un handler de réponse
+    
+    //afficher les parties de la liste
+
+    list_party_t* tmp = response->parties;
+
+    // Libération de la mémoire
+    
+    free(request);
+    freeSocket(socket);
+    free(response);
+
+    return tmp;
+    
+   
+
 }
