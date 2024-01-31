@@ -65,7 +65,7 @@ int main()
                 COULEUR(RED);
                 system("clear");
                 printf("------ Création de la partie ------\n\n");
-
+            
                 // TODO : CREER PARTIE
                 break;
             case '2':
