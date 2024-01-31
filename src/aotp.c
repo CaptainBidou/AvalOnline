@@ -18,6 +18,17 @@ void connectClientToHost(socket_t *socket, aotp_request_t *requestData);
 party_t *createParty(socket_t *socket, aotp_request_t *requestData);
 
 /**
+ * \fn void listPartiesRep(socket, parties, requestData->client_id);
+ * \brief Renvoie la liste des parties
+ * \param socket Socket du client
+ * \param parties Liste des parties
+ * \param client_id Identifiant du client
+ * \return Chaine de caractères correspondant aux parties
+ * \note la chaine de caractères est allouée dynamiquement, il faut donc la libérer après utilisation
+ */ 
+void listPartiesRep(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties);
+
+/**
  * \fn void connectHandler(socket_t *socket, aotp_request_t *requestData);
  * \brief Fonction de gestion de la connexion d'un client
  * \param socket Socket du client
@@ -74,6 +85,10 @@ void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t
         // ajoute la partie a la liste des parties
         addParty(parties, party);
 
+        break;
+    case AOTP_LIST_PARTIES:
+        // TODO : Renvoyer la liste des parties
+        listPartiesRep(socket,requestData,clients,parties);
         break;
 
     case AOTP_JOIN_PARTY:
@@ -193,7 +208,7 @@ void partyInit(party_t *party, party_id_t id, client_t *host, party_state_t stat
  */
 void partyToString(party_t *party, char *buffer)
 {
-    sprintf(buffer, "%d %s %d %d\r\n", party->id, party->host_ip, party->host_port, party->state);
+    sprintf(buffer, "%d %s %s %d %d\r\n", party->id, party->host_pseudo,party->host_ip, party->host_port, party->state);
 }
 
 /**
@@ -204,7 +219,7 @@ void partyToString(party_t *party, char *buffer)
  */
 void stringToParty(char *buffer, party_t *party)
 {
-    sscanf(buffer, "%d %s %hd %d\r\n", &party->id, party->host_ip, &party->host_port, (int *)&party->state);
+    sscanf(buffer, "%d %s %s %hd %d\r\n", &party->id,party->host_pseudo, party->host_ip, &party->host_port, (int *)&party->state);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -622,4 +637,44 @@ char *partyState2String(party_state_t state) {
         break;
     }
     return str;
+}
+
+/**
+ * \fn void listPartiesRep(socket, parties, requestData->client_id);
+ * \brief Renvoie la liste des parties
+ * \param socket Socket du client
+ * \param parties Liste des parties
+ * \param client_id Identifiant du client
+ * \return Chaine de caractères correspondant aux parties
+ * \note la chaine de caractères est allouée dynamiquement, il faut donc la libérer après utilisation
+ */ 
+void listPartiesRep(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties){
+
+    // on verifie que le client existe 
+    client_t *client = getClientById(*clients, requestData->client_id);
+    if(client == NULL) {
+        // Creation de la reponse de connexion
+        aotp_response_t *response = malloc(sizeof(aotp_response_t));
+        // On remplit la réponse
+        initResponse(response, AOTP_NOK, NULL, NULL);
+        response->client_id = requestData->client_id;
+        // Envoi de la reponse
+        send_data(socket, response, (serialize_t) struct2Response);
+
+        // Liberation de la memoire
+        free(response);
+        free(requestData);
+        return;
+    }
+    // Creation de la reponse de connexion
+    aotp_response_t *response = malloc(sizeof(aotp_response_t));
+    // On remplit la réponse
+    initResponse(response, AOTP_OK, *parties, NULL);
+
+    // Envoi de la reponse
+    send_data(socket, response, (serialize_t) struct2Response);
+
+    // Liberation de la memoire
+    free(response);
+    free(requestData);
 }

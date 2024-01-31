@@ -24,6 +24,7 @@ void loadingBar();
 void getPseudo(char *pseudo);
 void afficherParties();
 void connReq(char *pseudo, char *serverAddress, short serverPort);
+list_party_t* listPartyReq(char *pseudo,char *serverAddress, short serverPort);
 
 void createPartyReq(char *serverAddress, short serverPort, char *hostIp, short hostPort) {
     socket_t *socket = connectToServer(serverAddress, serverPort);
@@ -53,6 +54,7 @@ int main(int argc, char *argv[]) {
     char pseudo[20];
     char *serverAddress;
     short serverPort;
+    client = malloc(sizeof(client_t));
 
     // Récupération des arguments
     getServerAddress(argc, argv, &serverAddress, &serverPort);
@@ -60,33 +62,32 @@ int main(int argc, char *argv[]) {
     system("clear");
     connReq(pseudo, serverAddress, serverPort);
 
+    parties = listPartyReq(pseudo,serverAddress,serverPort);
+
     // Barre de chargement
     loadingBar();
     
     while(1){
         system("clear");
+
         COULEUR(RED);
         printf("\n\nBienvenue \e[%dm%s, \e[%dmvoici la liste des parties en cours !\n", GREEN, pseudo, RED);
-        system("clear");
+
         // Affichage des parties en cours
         afficherParties();
-
-        COULEUR(RED);
-        printf("Que voulez-vous faire ?\n\n");
-        printf("1. Créer une partie\n");
-        printf("2. Rejoindre une partie\n");
-        printf("3. Quitter\n\n");
-        printf("Votre choix : ");
-
+        menu();
+        
         COULEUR(GREEN);
-        fflush(stdin);
-        int choix = fgetc(stdin);
+        char choix = fgetc(stdin);
+        clearBuffer();
         COLOR_RESET;
-        switch (choix) {
+
+        switch (choix){
             case '1':
                 COULEUR(RED);
                 system("clear");
-                printf("------ Création de la partie ------\n\n Veuillez entrer le nom de la partie : ");
+                printf("------ Création de la partie ------\n\n");
+            
                 // TODO : CREER PARTIE
                 break;
             case '2':
@@ -202,11 +203,47 @@ void connReq(char *pseudo, char *serverAddress, short serverPort) {
     if(response->code == AOTP_OK) {
         printf("Connexion réussie !\n");
         printf("Votre ID : %d\n", response->client_id);
+        client->id = response->client_id;
+        
     }
     // Libération de la mémoire
     free(response);
     free(request);
     freeSocket(socket);
+}
+
+
+list_party_t* listPartyReq(char *pseudo,char *serverAddress, short serverPort){
+    // Création de la socket
+    socket_t *socket = connectToServer(serverAddress, serverPort);
+
+    // Envoi de la requête de connexion
+    aotp_request_t *request = createRequest(AOTP_LIST_PARTIES);
+    strcpy(request->pseudo, pseudo);
+    request->client_id = client->id;
+    send_data(socket, request, (serialize_t) struct2Request);
+
+    // Réception de la réponse
+    aotp_response_t *response = malloc(sizeof(aotp_response_t));
+    recv_data(socket, response, (serialize_t) response2Struct);
+
+    // Vérification de la réponse
+    // TODO : Remplacer par un handler de réponse
+    
+    //afficher les parties de la liste
+
+    list_party_t* tmp = response->parties;
+
+    // Libération de la mémoire
+    
+    free(request);
+    freeSocket(socket);
+    free(response);
+
+    return tmp;
+    
+   
+
 }
 
 void *handleClient(void *arg) {
