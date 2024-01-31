@@ -59,9 +59,13 @@ int main(int argc, char *argv[]) {
     getServerAddress(argc, argv, &serverAddress, &serverPort);
     getPseudo(pseudo);
     system("clear");
-    // TODO : Requete de connexion
-    connReq(pseudo, serverAddress, serverPort);
-    // TODO : Récupération de la réponse avec la liste des parties en cours
+
+    // Requete de connexion au serv d'enregistrement
+    connectClientToServer(CHECK_SERVER, NULL, pseudo);
+
+    // Récupération de la réponse avec la liste des parties en cours
+    sendRequest(AOTP_LIST_PARTIES, client->id, pseudo, -1, 0, NULL, NULL);
+    aotp_response_t *response = malloc(sizeof(aotp_response_t));
 
     // Barre de chargement
     loadingBar();
@@ -70,39 +74,24 @@ int main(int argc, char *argv[]) {
     while(1){
         system("clear");
 
-    COULEUR(RED);
-    printf("\n\nBienvenue \e[%dm%s, \e[%dmvoici la liste des parties en cours !\n", GREEN, pseudo, RED);
-    system("clear");
+        COULEUR(RED);
+        printf("\n\nBienvenue \e[%dm%s, \e[%dmvoici la liste des parties en cours !\n", GREEN, pseudo, RED);
 
-    // Affichage des parties en cours
-    afficherParties();
+        // Affichage des parties en cours
+        afficherParties();
+        menu();
+        
+        COULEUR(GREEN);
+        char choix = fgetc(stdin);
+        clearBuffer();
+        COLOR_RESET;
 
-<<<<<<< HEAD
         switch (choix){
             case '1':
                 COULEUR(RED);
                 system("clear");
                 printf("------ Création de la partie ------\n\n");
             
-=======
-    COULEUR(RED);
-    printf("Que voulez-vous faire ?\n\n");
-    printf("1. Créer une partie\n");
-    printf("2. Rejoindre une partie\n");
-    printf("3. Quitter\n\n");
-    printf("Votre choix : ");
-
-    COULEUR(GREEN);
-    fflush(stdin);
-    int choix = fgetc(stdin);
-    COLOR_RESET;
-    switch (choix) {
-        case '1':
-            COULEUR(RED);
-            system("clear");
-            printf("------ Création de la partie ------\n\n Veuillez entrer le nom de la partie : ");
-
->>>>>>> 00bdefe9d8152fd6f61f7afeaa05cecca51be5ef
                 // TODO : CREER PARTIE
                 break;
             case '2':
