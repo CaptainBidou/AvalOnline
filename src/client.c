@@ -20,6 +20,7 @@ list_client_t *players = NULL; // Liste des joueurs connectés
 client_t *client = NULL; // Informations du client
 
 void clearBuffer();
+void menu();
 void loadingBar();
 void getPseudo(char *pseudo);
 void afficherParties();
@@ -76,7 +77,6 @@ int main(int argc, char *argv[]) {
         // Affichage des parties en cours
         afficherParties();
         menu();
-        
         COULEUR(GREEN);
         char choix = fgetc(stdin);
         clearBuffer();
@@ -122,6 +122,15 @@ void clearBuffer()
     int c;
     while ((c = getchar()) != '\n' && c != EOF)
         ;
+}
+
+void menu() {
+    COULEUR(RED);
+    printf("\n\nQue voulez-vous faire ?\n");
+    printf("1. Créer une partie\n");
+    printf("2. Rejoindre une partie\n");
+    printf("3. Quitter\n");
+    COLOR_RESET;
 }
 
 void loadingBar()
