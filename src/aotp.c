@@ -15,7 +15,7 @@ void connectClientToHost(socket_t *socket, aotp_request_t *requestData);
  * \param requestData Requete de connexion du client
  * \return party_t *party
  */
-party_t *createParty(socket_t *socket, aotp_request_t *requestData);
+party_t *createParty(aotp_request_t *requestData, list_party_t **parties, list_client_t **clients);
 
 /**
  * \fn void listPartiesRep(socket, parties, requestData->client_id);
@@ -80,7 +80,7 @@ void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t
 
     case AOTP_CREATE_PARTY:
         // Creer une partie et informer le serveur d'enregistrement
-        party_t *party = createParty(socket, requestData);
+        party_t *party = createParty(requestData, parties, clients);
 
         // ajoute la partie a la liste des parties
         addParty(parties, party);
@@ -195,9 +195,14 @@ void clientInit(client_t *client, int id, char *pseudo, socket_t *socket) {
  * \param host Hote de la partie
  * \param state Etat de la partie
  */
-void partyInit(party_t *party, party_id_t id, client_t *host, party_state_t state) {
+party_t *partyInit(party_id_t id, client_t *host, party_state_t state) {
+    party_t *party = malloc(sizeof(party_t));
     party->id = id;
     party->state = state;
+    strcpy(party->host_pseudo, host->pseudo);
+    strcpy(party->host_ip, host->ip);
+    party->host_port = host->port;
+    return party;
 }
 
 /**
@@ -514,7 +519,21 @@ void removeParty(list_party_t **list, party_t *party) {
  * \param requestData Requete de connexion du client
  * \return party_t *party
  */
-party_t *createParty(socket_t *socket, aotp_request_t *requestData) {
+party_t *createParty(aotp_request_t *requestData, list_party_t **parties, list_client_t **clients) {
+    // On genere un identifiant unique pour la partie
+    party_id_t id = generatePartyId(parties);
+    // On recupere le client
+    client_t *host = getClientById(*clients, requestData->client_id);
+    // TODO : Renvoyer une erreur si le client n'existe pas
+    if(host == NULL) return NULL;
+
+    strcpy(host->ip, requestData->host_ip);
+    host->port = requestData->host_port;
+
+    // On cree la partie
+    party_t *party = partyInit(id, host, PARTY_WAITING);
+
+    return party;
 
 }
 
@@ -552,7 +571,7 @@ int generateClientId() {
 */
 party_id_t generatePartyId(list_party_t *list) {
     // On compte le nombre de parties dans la liste
-    int nbParties = 0;
+    int nbParties = 1;
     list_party_t *current = list;
     while(current != NULL) {
         nbParties++;

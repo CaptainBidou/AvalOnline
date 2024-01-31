@@ -28,33 +28,6 @@ void *handleClient(void *arg) {
 }
 
 int main() {
-    // Creation de parties de test
-    // TODO : A SUPPRIMER
-    party_t *p1 = malloc(sizeof(party_t));
-    p1->id = 1;
-    strncpy(p1->host_ip,"0",1);
-    p1->host_port = 0;
-    p1->state = PARTY_WAITING;
-    strcpy(p1->host_pseudo, "Lukas");
-    party_t *p2 = malloc(sizeof(party_t));
-    p2->id = 2;
-    strncpy(p2->host_ip,"0",1);
-    p2->host_port = 0;
-    p2->state = PARTY_PLAYING;
-    strcpy(p2->host_pseudo, "Tomas");
-
-    party_t *p3 = malloc(sizeof(party_t));
-    p3->id = 3;
-    strncpy(p3->host_ip,"0",1);
-    p3->host_port = 0;
-    p3->state = PARTY_WAITING;
-    strcpy(p3->host_pseudo, "Arthur");
-
-    addParty(&parties, p1);
-    addParty(&parties, p2);
-    addParty(&parties, p3);
-    // fin de la section
-
     se = createListeningSocket(DEFAULT_AOTP_IP, DEFAULT_AOTP_PORT, DEFAULT_AOTP_MAX_CLIENTS);
     sem_clients = create_sem(0);
     sem_parties = create_sem(0);

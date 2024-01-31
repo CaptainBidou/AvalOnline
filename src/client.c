@@ -11,12 +11,9 @@
 #define GREEN 32
 #define BLUE 34
 
-#define CHECK_SERVER 1
-#define HOST_SERVER 2
 
 list_party_t *parties = NULL; // Liste des parties en cours
 list_client_t *players = NULL; // Liste des joueurs connectés
-
 client_t *client = NULL; // Informations du client
 
 void clearBuffer();
@@ -25,6 +22,8 @@ void loadingBar();
 void getPseudo(char *pseudo);
 void afficherParties();
 void connReq(char *pseudo, char *serverAddress, short serverPort);
+void host(char *hostIp, short hostPort);
+
 list_party_t* listPartyReq(char *pseudo,char *serverAddress, short serverPort);
 
 void createPartyReq(char *serverAddress, short serverPort, char *hostIp, short hostPort) {
@@ -44,8 +43,9 @@ void createPartyReq(char *serverAddress, short serverPort, char *hostIp, short h
 
     if(response->code == AOTP_OK) {
         printf("Partie créée !\n");
+        getchar();
         // Creation du thread d'hote
-
+        host(hostIp, hostPort);
     }
 }
 
@@ -87,7 +87,16 @@ int main(int argc, char *argv[]) {
                 COULEUR(RED);
                 system("clear");
                 printf("------ Création de la partie ------\n\n");
-            
+                // On récupère l'ip et le port de l'hôte
+                char hostIp[16];
+                short hostPort;
+                printf("Veuillez entrer l'adresse IP de l'hôte : ");
+                fgets(hostIp, 10, stdin);
+                printf("Veuillez entrer le port de l'hôte : ");
+                scanf("%hd", &hostPort);
+                clearBuffer();
+                createPartyReq(serverAddress, serverPort, hostIp, hostPort);
+
                 // TODO : CREER PARTIE
                 break;
             case '2':
@@ -279,4 +288,7 @@ void host(char *hostIp, short hostPort) {
         pthread_create(&thread, NULL, handleClient, (void *) host_sd);
         pthread_detach(thread);
     }
+
+    // Fermeture de la socket
+    freeSocket(host_se);
 }

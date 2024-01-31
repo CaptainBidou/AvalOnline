@@ -78,6 +78,8 @@ typedef struct
 {
     int id;        /*!< Identifiant du client */
     char pseudo[20]; /*!< Pseudo du client */
+    char ip[16];    /*!< Adresse IP du client */
+    short port;     /*!< Port du client */
 } client_t;          /*!< Structure d'un client */
 
 typedef struct client_node
@@ -190,7 +192,7 @@ void clientInit(client_t *client, int id, char *pseudo, socket_t *socket);
  * \param host Hote de la partie
  * \param state Etat de la partie
  */
-void partyInit(party_t *party, party_id_t id, client_t *host, party_state_t state);
+party_t *partyInit(party_id_t id, client_t *host, party_state_t state);
 
 /**
  * \fn list_client_t *initClientList(client_t *client);
@@ -360,5 +362,6 @@ char *partyState2String(party_state_t state);
  * \param AOTP_REQUEST action;       !< Code de la requete
  */
 void initRequest(AOTP_REQUEST action);
+
 
 #endif
