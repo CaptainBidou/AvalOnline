@@ -28,7 +28,7 @@ party_t *createParty(socket_t *socket, aotp_request_t *requestData);
 void connectHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties) {
     // Creation d'un nouveau client
     client_t *client = malloc(sizeof(client_t));
-    clientInit(client, -1, requestData->pseudo, *socket);
+    clientInit(client, -1, requestData->pseudo, socket);
 
     printf("Client connecté : [%d] %s\n", client->id, client->pseudo);
     // Ajout du client a la liste des clients connectes
@@ -105,6 +105,12 @@ void struct2Request(aotp_request_t *request, char *buffer)
     // écriture de l'id de la partie
     if (request->party_id != 0) sprintf(buffer, "%sparty_id_t %d\r\n", buffer, request->party_id);
 
+    // écriture de l'ip de l'hote
+    if (strlen(request->host_ip) > 0) sprintf(buffer, "%shost_ip %s\r\n", buffer, request->host_ip);
+
+    // écriture du port de l'hote
+    if (request->host_port != 0) sprintf(buffer, "%shost_port %d\r\n", buffer, request->host_port);
+
     // TODO : Ajouter les autres cas
 }
 
@@ -131,7 +137,10 @@ void request2Struct(char *buffer, aotp_request_t *request)
     while (body != NULL) {
 
         if (strncmp(body, "client_t", strlen("client_t")) == 0) sscanf(body, "client_t %d %20s", &request->client_id, request->pseudo);
-        if (strncmp(body, "party_id_t", strlen("party_id_t")) == 0) sscanf(body, "party_id_t %d", &request->party_id);
+        if (strncmp(body, "party_t", strlen("party_t")) == 0) sscanf(body, "party_id_t %d", &request->party_id);
+        if (strncmp(body, "host_ip", strlen("host_ip")) == 0) sscanf(body, "host_ip %s", request->host_ip);
+        if (strncmp(body, "host_port", strlen("host_port")) == 0) sscanf(body, "host_port %hd", &request->host_port);
+
         // TODO : Ajouter les autres cas
         // Passe à la ligne suivante
         body = strtok_r(NULL, "\r\n", &saveptr);
@@ -150,14 +159,13 @@ void request2Struct(char *buffer, aotp_request_t *request)
  * \param pseudo Pseudo du client
  * \param socket Socket du client
  */
-void clientInit(client_t *client, int id, char *pseudo, socket_t socket) {
+void clientInit(client_t *client, int id, char *pseudo, socket_t *socket) {
     // Si l'id est -1, on genere un id unique
     if(id == -1) {
         id = generateClientId();
     }
     client->id = id;
     strcpy(client->pseudo, pseudo);
-    client->socket = socket;
 }
 
 /* ------------------------------------------------------------------------ */
@@ -172,15 +180,8 @@ void clientInit(client_t *client, int id, char *pseudo, socket_t socket) {
  * \param host Hote de la partie
  * \param state Etat de la partie
  */
-void partyInit(party_t *party, party_id_t id, client_t *host, party_state_t state)
-{
+void partyInit(party_t *party, party_id_t id, client_t *host, party_state_t state) {
     party->id = id;
-    // Récupération de l'adresse IP de l'hote
-    if (host != NULL)
-    {
-        strcpy(party->host_ip, inet_ntoa(host->socket.localAddr.sin_addr));
-        party->host_port = host->socket.localAddr.sin_port;
-    }
     party->state = state;
 }
 
@@ -498,10 +499,8 @@ void removeParty(list_party_t **list, party_t *party) {
  * \param requestData Requete de connexion du client
  * \return party_t *party
  */
-party_t *createParty(socket_t *socket, aotp_request_t *requestData)
-{
-    // TODO : créer la partie
-    return NULL;
+party_t *createParty(socket_t *socket, aotp_request_t *requestData) {
+
 }
 
 /**
@@ -528,6 +527,24 @@ int generateClientId() {
     // On concatene les deux valeurs
     int id = timestamp + pid;
 
+    return id;
+}
+
+/**
+ * \fn party_id_t generatePartyId(list_party_t *list);
+ * \brief Fonction de generation d'un identifiant unique pour une partie
+ * \return Identifiant unique
+*/
+party_id_t generatePartyId(list_party_t *list) {
+    // On compte le nombre de parties dans la liste
+    int nbParties = 0;
+    list_party_t *current = list;
+    while(current != NULL) {
+        nbParties++;
+        current = current->next;
+    }
+    // On genere un identifiant unique
+    party_id_t id = nbParties + 1;
     return id;
 }
 

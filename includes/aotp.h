@@ -78,7 +78,6 @@ typedef struct
 {
     int id;        /*!< Identifiant du client */
     char pseudo[20]; /*!< Pseudo du client */
-    socket_t socket; /*!< Socket du client */
 } client_t;          /*!< Structure d'un client */
 
 typedef struct client_node
@@ -96,10 +95,12 @@ typedef struct
     AOTP_REQUEST action;       /*!< Code de la requete */
     int client_id;           /*!< Identifiant du client */
     char pseudo[20];           /*!< Pseudo du client */
-    party_id_t party_id;       /*!< Identifiant de la partie */
-    party_state_t party_state; /*!< Etat de la partie */
+    char host_ip[16];          /*!< Adresse IP de l'hote */
+    short host_port;           /*!< Port de l'hote */
     coup_t *coup;              /*!< Coup a jouer */
     evolution_t *evolution;    /*!< Evolution a jouer */
+    party_state_t party_state; /*!< Etat de la partie */
+    party_id_t party_id;       /*!< Identifiant de la partie */
 } aotp_request_t;              /*!< Structure de requete du protocole */
 
 /**
@@ -175,7 +176,7 @@ void request2Struct(char *buffer, aotp_request_t *request);
  * \param pseudo Pseudo du client
  * \param socket Socket du client
  */
-void clientInit(client_t *client, int id, char *pseudo, socket_t socket);
+void clientInit(client_t *client, int id, char *pseudo, socket_t *socket);
 
 /* ------------------------------------------------------------------------ */
 /*            M A N I P U L A T I O N    D E    P A R T I E S               */

@@ -14,8 +14,10 @@
 #define CHECK_SERVER 1
 #define HOST_SERVER 2
 
-list_party_t *parties = NULL;         // Liste des parties en cours
+list_party_t *parties = NULL; // Liste des parties en cours
+list_client_t *players = NULL; // Liste des joueurs connectés
 
+client_t *client = NULL; // Informations du client
 
 void clearBuffer();
 void loadingBar();
@@ -23,77 +25,68 @@ void getPseudo(char *pseudo);
 void afficherParties();
 void connReq(char *pseudo, char *serverAddress, short serverPort);
 
-socket_t se, sd; // Socket d'écoute et socket de dialogue
+void createPartyReq(char *serverAddress, short serverPort, char *hostIp, short hostPort) {
+    socket_t *socket = connectToServer(serverAddress, serverPort);
 
+    aotp_request_t *request = createRequest(AOTP_CREATE_PARTY);
+    request->client_id = client->id;
+    strcpy(request->pseudo, client->pseudo);
+    request->action = AOTP_CREATE_PARTY;
+    request->party_id = -1;
+    strcpy(request->host_ip, hostIp);
+    request->host_port = hostPort;
+    send_data(socket, request, (serialize_t) struct2Request);
+
+    aotp_response_t *response = malloc(sizeof(aotp_response_t));
+    recv_data(socket, response, (serialize_t) response2Struct);
+
+    if(response->code == AOTP_OK) {
+        printf("Partie créée !\n");
+        // Creation du thread d'hote
+
+    }
+}
+
+socket_t *host_se, *host_sd; // Socket d'écoute et socket de dialogue
 
 int main(int argc, char *argv[]) {
     char pseudo[20];
     char *serverAddress;
     short serverPort;
 
-    // Creation de parties de test
-    // TODO : A SUPPRIMER
-    party_t *p1 = malloc(sizeof(party_t));
-    p1->id = 1;
-    p1->host_port = 0;
-    p1->state = PARTY_WAITING;
-    strcpy(p1->host_pseudo, "Lukas");
-    party_t *p2 = malloc(sizeof(party_t));
-    p2->id = 2;
-    p2->host_port = 0;
-    p2->state = PARTY_PLAYING;
-    strcpy(p2->host_pseudo, "Tomas");
-
-    party_t *p3 = malloc(sizeof(party_t));
-    p3->id = 3;
-    p3->host_port = 0;
-    p3->state = PARTY_WAITING;
-    strcpy(p3->host_pseudo, "Arthur");
-
-    addParty(&parties, p1);
-    addParty(&parties, p2);
-    addParty(&parties, p3);
-
-
     // Récupération des arguments
     getServerAddress(argc, argv, &serverAddress, &serverPort);
     getPseudo(pseudo);
     system("clear");
-    // TODO : Requete de connexion
     connReq(pseudo, serverAddress, serverPort);
-    // TODO : Récupération de la réponse avec la liste des parties en cours
 
     // Barre de chargement
     loadingBar();
     
-
     while(1){
         system("clear");
+        COULEUR(RED);
+        printf("\n\nBienvenue \e[%dm%s, \e[%dmvoici la liste des parties en cours !\n", GREEN, pseudo, RED);
+        system("clear");
+        // Affichage des parties en cours
+        afficherParties();
 
-    COULEUR(RED);
-    printf("\n\nBienvenue \e[%dm%s, \e[%dmvoici la liste des parties en cours !\n", GREEN, pseudo, RED);
-    system("clear");
+        COULEUR(RED);
+        printf("Que voulez-vous faire ?\n\n");
+        printf("1. Créer une partie\n");
+        printf("2. Rejoindre une partie\n");
+        printf("3. Quitter\n\n");
+        printf("Votre choix : ");
 
-    // Affichage des parties en cours
-    afficherParties();
-
-    COULEUR(RED);
-    printf("Que voulez-vous faire ?\n\n");
-    printf("1. Créer une partie\n");
-    printf("2. Rejoindre une partie\n");
-    printf("3. Quitter\n\n");
-    printf("Votre choix : ");
-
-    COULEUR(GREEN);
-    fflush(stdin);
-    int choix = fgetc(stdin);
-    COLOR_RESET;
-    switch (choix) {
-        case '1':
-            COULEUR(RED);
-            system("clear");
-            printf("------ Création de la partie ------\n\n Veuillez entrer le nom de la partie : ");
-
+        COULEUR(GREEN);
+        fflush(stdin);
+        int choix = fgetc(stdin);
+        COLOR_RESET;
+        switch (choix) {
+            case '1':
+                COULEUR(RED);
+                system("clear");
+                printf("------ Création de la partie ------\n\n Veuillez entrer le nom de la partie : ");
                 // TODO : CREER PARTIE
                 break;
             case '2':
@@ -105,18 +98,20 @@ int main(int argc, char *argv[]) {
                 clearBuffer();
                 printf("Num partie : %c\n", numPartie);
                 // TODO : REJOINDRE PARTIE
-                break;
+            break;
+
             case '3':
                 COULEUR(RED);
                 printf("Ah ché genant\n");
                 COLOR_RESET;
                 exit(0);
-                break;
+            break;
+            
             default:
                 COULEUR(RED);
                 printf("\nCe choix n'est pas valide\n\n");
                 COLOR_RESET;
-                break;
+            break;
         }
     }
 }
@@ -133,21 +128,15 @@ void loadingBar()
     // Barre de chargement
     COULEUR(BLUE);
     printf("\nRécupération des données en cours...\n");
-    for (int i = 0; i < 100; i++)
-    {
+    for (int i = 0; i < 100; i++) {
         printf("\r");
         printf("[");
-        for (int j = 0; j < i; j++)
-        {
-            printf("=");
-        }
-        for (int j = 0; j < 100 - i; j++)
-        {
-            printf(" ");
-        }
+        for (int j = 0; j < i; j++) printf("=");
+
+        for (int j = 0; j < 100 - i; j++) printf(" ");
         printf("] %d%%", i);
         fflush(stdout);
-        usleep(10000);
+        usleep(1000);
     }
     printf("\n");
     COLOR_RESET;
@@ -218,4 +207,30 @@ void connReq(char *pseudo, char *serverAddress, short serverPort) {
     free(response);
     free(request);
     freeSocket(socket);
+}
+
+void *handleClient(void *arg) {
+    printf("Client connecté\n");
+    socket_t *sd = (socket_t *) arg;
+    aotp_request_t *request = malloc(sizeof(aotp_request_t));
+    char *buffer = malloc(sizeof(buffer_t));
+
+    // Reception de la requete
+    recv_data(sd, request, (serialize_t) request2Struct);
+    requestHandler(sd, request, &players, &parties);
+    
+    // Fermeture de la socket
+    freeSocket(sd);
+}
+
+void host(char *hostIp, short hostPort) {
+    host_se = createListeningSocket(hostIp, hostPort, DEFAULT_AOTP_MAX_CLIENTS);
+
+    while(1) {
+        host_sd = acceptClient(host_se);
+        pthread_t thread; 
+        // Create a new thread for each client
+        pthread_create(&thread, NULL, handleClient, (void *) host_sd);
+        pthread_detach(thread);
+    }
 }
