@@ -259,5 +259,14 @@ score_t evaluerScore(position_t p);
 */
 void afficherScore(score_t s);
 
+
+/**
+ * \fn placerEvolutionPionParPion(char numCase,char destination)
+ * \brief place un pion evolution sur une case
+ * \param numCase numéro de la case
+ * \param destination bonus ou malus rouge ou jaune 
+*/
+void placerEvolutionPionParPion(char numCase,char destination);
+
 #endif
 

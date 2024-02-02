@@ -26,6 +26,7 @@ void host(char *hostIp, short hostPort);
 
 list_party_t* listPartyReq(char *pseudo,char *serverAddress, short serverPort);
 position_t* jouerCoupReq(char *pseudo,char *serverAddress, short serverPort,position_t p, char origine, char destination);
+position_t* jouerEvolutionReq(char *pseudo,char *serverAddress, short serverPort,position_t p, char origine, char destination);
 
 
 void createPartyReq(char *serverAddress, short serverPort, char *hostIp, short hostPort) {
@@ -299,7 +300,7 @@ void host(char *hostIp, short hostPort) {
 
 
 /* ------------------------------------------------------------------------ */
-/*                  F O N C T I O N S     D E      J E U X                  */
+/*                F O N C T I O N S     D E      J E U X                    */
 /* ------------------------------------------------------------------------ */
 position_t* jouerCoupReq(char *pseudo,char *serverAddress, short serverPort,position_t p, char origine, char destination){
     p = jouerCoup(p,origine,destination);
@@ -335,3 +336,40 @@ position_t* jouerCoupReq(char *pseudo,char *serverAddress, short serverPort,posi
     return tmp;
     
 }
+
+position_t* jouerEvolutionReq(char *pseudo,char *serverAddress, short serverPort,position_t p, char origine, char destination){
+    p = jouerCoup(p,origine,destination);
+
+    // Création de la socket
+    socket_t *socket = connectToServer(serverAddress, serverPort);
+
+    // Envoi de la requête de connexion
+    aotp_request_t *request = createRequest(AOTP_SEND_MOVE);
+    strcpy(request->pseudo, pseudo);
+    request->client_id = client->id;
+    request->coup->destination = destination;
+    request->coup->origine = origine;
+    send_data(socket, request, (serialize_t) struct2Request);
+
+    // Réception de la réponse
+    aotp_response_t *response = malloc(sizeof(aotp_response_t));
+    recv_data(socket, response, (serialize_t) response2Struct);
+
+    // Vérification de la réponse
+    // TODO : Remplacer par un handler de réponse
+    
+    //afficher les parties de la liste
+
+    position_t* tmp = response->position;
+
+    // Libération de la mémoire
+    
+    free(request);
+    freeSocket(socket);
+    free(response);
+
+    return tmp;
+    
+}
+
+
