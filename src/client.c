@@ -13,59 +13,46 @@
 
 
 list_party_t *parties = NULL; // Liste des parties en cours
+party_t *myParty = NULL; // Informations de la partie de l'utilisateur
+
 list_client_t *players = NULL; // Liste des joueurs connectés
 client_t *client = NULL; // Informations du client
+void createPartyReq(char *serverAddress, short serverPort, char *hostIp, short hostPort);
 
+// Fonctions propre à l'interface
 void clearBuffer();
 void menu();
 void loadingBar();
 void getPseudo(char *pseudo);
 void afficherParties();
-void connReq(char *pseudo, char *serverAddress, short serverPort);
+void promptHostIpPort(char *hostIp, short *hostPort);
+void playGame(client_t *client, party_state_t state);
+
+// Thread du serveur d'hébergement
 void host(char *hostIp, short hostPort);
-void requestJoinParty(party_id_t partyId);
-
+// Requete vers le serveur d'enregistrement
+void requestJoinParty(client_t *client, party_id_t partyId);
 list_party_t* listPartyReq(char *pseudo,char *serverAddress, short serverPort);
-position_t* jouerCoupReq(char *pseudo,char *serverAddress, short serverPort,position_t p, char origine, char destination);
-position_t* jouerEvolutionReq(char *pseudo,char *serverAddress, short serverPort,position_t p, char origine, char destination);
+void connReq(char *pseudo, char *serverAddress, short serverPort);
 
-
-void createPartyReq(char *serverAddress, short serverPort, char *hostIp, short hostPort) {
-    socket_t *socket = connectToServer(serverAddress, serverPort);
-
-    aotp_request_t *request = createRequest(AOTP_CREATE_PARTY);
-    request->client_id = client->id;
-    strcpy(request->pseudo, client->pseudo);
-    request->action = AOTP_CREATE_PARTY;
-    request->party_id = -1;
-    strcpy(request->host_ip, hostIp);
-    request->host_port = hostPort;
-    send_data(socket, request, (serialize_t) struct2Request);
-
-    aotp_response_t *response = malloc(sizeof(aotp_response_t));
-    recv_data(socket, response, (serialize_t) response2Struct);
-    if(response->code == AOTP_OK) {
-        printf("Partie créée !\n");
-        // Creation du thread d'hote
-        host(hostIp, hostPort);
-    }
-}
+// Requete vers le serveur de jeu
+position_t* jouerCoupReq(client_t *client, position_t p, char origine, char destination);
+position_t* jouerEvolutionReq(client_t *client, position_t p, char origine, char destination);
 
 socket_t *host_se, *host_sd; // Socket d'écoute et socket de dialogue
 
 int main(int argc, char *argv[]) {
-    char pseudo[20];
     char *serverAddress;
     short serverPort;
-    client = malloc(sizeof(client_t));
+    client = initClient(-1, "", CLIENT_UNKOWN, NULL);
 
     // Récupération des arguments
     getServerAddress(argc, argv, &serverAddress, &serverPort);
-    getPseudo(pseudo);
+    getPseudo(client->pseudo);
     system("clear");
-    connReq(pseudo, serverAddress, serverPort);
+    connReq(client->pseudo, serverAddress, serverPort);
 
-    parties = listPartyReq(pseudo,serverAddress,serverPort);
+    parties = listPartyReq(client->pseudo,serverAddress,serverPort);
 
     // Barre de chargement
     loadingBar();
@@ -73,7 +60,7 @@ int main(int argc, char *argv[]) {
     while(1){
         system("clear");
         COULEUR(RED);
-        printf("\n\nBienvenue \e[%dm%s, \e[%dmvoici la liste des parties en cours !\n", GREEN, pseudo, RED);
+        printf("\n\nBienvenue \e[%dm%s, \e[%dmvoici la liste des parties en cours !\n", GREEN, client->pseudo, RED);
         // Affichage des parties en cours
         afficherParties();
         menu();
@@ -83,17 +70,10 @@ int main(int argc, char *argv[]) {
         COLOR_RESET;
         switch (choix){
             case '1':
-                COULEUR(RED);
-                system("clear");
-                printf("------ Création de la partie ------\n\n");
-                // On récupère l'ip et le port de l'hôte
                 char hostIp[16];
                 short hostPort;
-                printf("Veuillez entrer l'adresse IP de l'hôte : ");
-                fgets(hostIp, 10, stdin);
-                printf("Veuillez entrer le port de l'hôte : ");
-                scanf("%hd", &hostPort);
-                clearBuffer();
+                COULEUR(RED);
+                promptHostIpPort(hostIp, &hostPort);
                 createPartyReq(serverAddress, serverPort, hostIp, hostPort);
 
                 // TODO : CREER PARTIE
@@ -107,7 +87,7 @@ int main(int argc, char *argv[]) {
                 scanf("%d", &numPartie);
                 clearBuffer();
                 printf("Num partie : %d\n", numPartie);
-                requestJoinParty(numPartie);
+                requestJoinParty(client, numPartie);
             break;
 
             case '3':
@@ -201,6 +181,24 @@ void afficherParties() {
 
 }
 
+void createPartyReq(char *serverAddress, short serverPort, char *hostIp, short hostPort) {
+    socket_t *socket = connectToServer(serverAddress, serverPort);
+    aotp_request_t *request = createRequest(AOTP_CREATE_PARTY);
+    request->client_id = client->id;
+    strcpy(request->pseudo, client->pseudo);
+    request->action = AOTP_CREATE_PARTY;
+    request->party_id = -1;
+    strcpy(request->host_ip, hostIp);
+    request->host_port = hostPort;
+    send_data(socket, request, (serialize_t) struct2Request);
+    aotp_response_t *response = malloc(sizeof(aotp_response_t));
+    recv_data(socket, response, (serialize_t) response2Struct);
+    if(response->code == AOTP_OK) {
+        printf("Partie créée !\n");
+        // Creation du thread d'hote
+        host(hostIp, hostPort);
+    }
+}
 
 void connReq(char *pseudo, char *serverAddress, short serverPort) {
     // Création de la socket
@@ -269,16 +267,19 @@ void *handleClient(void *arg) {
     socket_t *sd = (socket_t *) arg;
     aotp_request_t *request = malloc(sizeof(aotp_request_t));
     char *buffer = malloc(sizeof(buffer_t));
-
     // Reception de la requete
+    while(1) {
     recv_data(sd, request, (serialize_t) request2Struct);
     requestHandler(sd, request, &players, &parties);
-    
-    // Fermeture de la socket
-    freeSocket(sd);
+    }
+
+    // Lorsque c'est le client qui héberge on garde la socket de dialogue pour les échanges tant que le client ne quitte pas
+    // La socket est fermée dans le handler de requête
+    // Todo : Vérifier si le client a quitté et fermer la socket
 }
 
 void host(char *hostIp, short hostPort) {
+
     host_se = createListeningSocket(hostIp, hostPort, DEFAULT_AOTP_MAX_CLIENTS);
 
     while(1) {
@@ -292,22 +293,13 @@ void host(char *hostIp, short hostPort) {
     freeSocket(host_se);
 }
 
-
-
-
-
-/* ------------------------------------------------------------------------ */
-/*                F O N C T I O N S     D E      J E U X                    */
-/* ------------------------------------------------------------------------ */
-position_t* jouerCoupReq(char *pseudo,char *serverAddress, short serverPort,position_t p, char origine, char destination){
+position_t* jouerCoupReq(client_t *client, position_t p, char origine, char destination){
     p = jouerCoup(p,origine,destination);
 
     // Création de la socket
-    socket_t *socket = connectToServer(serverAddress, serverPort);
-
+    socket_t *socket = client->socket;
     // Envoi de la requête de connexion
     aotp_request_t *request = createRequest(AOTP_SEND_MOVE);
-    strcpy(request->pseudo, pseudo);
     request->client_id = client->id;
     request->coup->destination = destination;
     request->coup->origine = origine;
@@ -334,15 +326,14 @@ position_t* jouerCoupReq(char *pseudo,char *serverAddress, short serverPort,posi
     
 }
 
-position_t* jouerEvolutionReq(char *pseudo,char *serverAddress, short serverPort,position_t p, char origine, char destination){
-    p = jouerCoup(p,origine,destination);
+position_t* jouerEvolutionReq(client_t *client, position_t p, char origine, char destination){
 
+    p = jouerCoup(p,origine,destination);
     // Création de la socket
-    socket_t *socket = connectToServer(serverAddress, serverPort);
+    socket_t *socket = client->socket;
 
     // Envoi de la requête de connexion
     aotp_request_t *request = createRequest(AOTP_SEND_MOVE);
-    strcpy(request->pseudo, pseudo);
     request->client_id = client->id;
     request->coup->destination = destination;
     request->coup->origine = origine;
@@ -356,40 +347,98 @@ position_t* jouerEvolutionReq(char *pseudo,char *serverAddress, short serverPort
     // TODO : Remplacer par un handler de réponse
     
     //afficher les parties de la liste
-
     position_t* tmp = response->position;
 
     // Libération de la mémoire
     
     free(request);
-    freeSocket(socket);
     free(response);
 
     return tmp;
     
 }
 
-
-
-
-void requestJoinParty(party_id_t partyId) {
+void requestJoinParty(client_t *client, party_id_t partyId) {
     // Récupération de la partie
     party_t *party = getPartyById(parties, partyId);
     // Création de la socket
-    socket_t *socket = connectToServer(party->host_ip, party->host_port);
+    client->socket = connectToServer(party->host_ip, party->host_port);
+
     // Envoi de la requête de connexion
     aotp_request_t *request = createRequest(AOTP_JOIN_PARTY);
-    strcpy(request->pseudo, client->pseudo);
     request->client_id = client->id;
-    send_data(socket, request, (serialize_t) struct2Request);
+    send_data(client->socket, request, (serialize_t) struct2Request);
 
     // Réception de la réponse
     aotp_response_t *response = malloc(sizeof(aotp_response_t));
-    recv_data(socket, response, (serialize_t) response2Struct);
+    recv_data(client->socket, response, (serialize_t) response2Struct);
 
     // Vérification de la réponse
     // TODO : Remplacer par un handler de réponse
     if(response->code == AOTP_OK) {
         printf("Connexion à la partie réussie !\n");
     }
+}
+
+/**
+ * \fn void playGame(client_t *client)
+ * \brief Fonction de déroulement du jeu pour un client
+ * \param client Informations du client
+ * 
+ * Cette fonction fait une requête pour connaitre l'état de la partie
+ * Si l'état est WAITING, on demande au client s'il est prêt
+ * Si l'état est PLAYING, le client est spectateur et se mets dans une boucle d'attente de la position
+*/
+void playGame(client_t *client, party_state_t state) {
+    system("clear");
+    switch (state) {
+        case PARTY_PLAYING:
+            COULEUR(RED);
+            printf("La partie est en cours ! Vous êtes spectateur\n");
+            // TODO : Spectateur à mettre dans une fonction
+            position_t *position = malloc(sizeof(position_t));
+            *position = getPositionInitiale();
+            while(getCoupsLegaux(*position).nb > 0) {
+                // On attend la position du serveur d'hébergement
+            }
+            break;
+        
+        case PARTY_WAITING:
+            COULEUR(RED);
+            printf("La partie est en attente de joueurs, êtes-vous prêt ? (o/n)\n");
+            COLOR_RESET;
+            COULEUR(GREEN);
+            char choix;
+            scanf("%c", &choix);
+            clearBuffer();
+            COLOR_RESET;
+            if(choix == 'o') {
+                // TODO : Prêt
+            }
+            // Mode spectateur 
+            break;
+        
+        case PARTY_FINISHED:
+            COULEUR(RED);
+            printf("La partie est terminée !\n");
+            COLOR_RESET;
+
+            break;
+        
+    }
+}
+
+void promptHostIpPort(char *hostIp, short *hostPort) {
+    COULEUR(RED);
+    printf("Veuillez entrer l'adresse IP de votre machine : ");
+    COLOR_RESET;
+    COULEUR(GREEN);
+    fgets(hostIp, 16, stdin);
+    COLOR_RESET;
+    COULEUR(RED);
+    printf("Veuillez entrer le port sur lequel vous souhaitez héberger la partie : ");
+    COLOR_RESET;
+    COULEUR(GREEN);
+    scanf("%hd", hostPort);
+    COLOR_RESET;
 }

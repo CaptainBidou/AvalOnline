@@ -68,6 +68,9 @@ typedef enum
     AOTP_OK = 200, /*!< Code de retour OK */
 
     AOTP_NOK = 400, /*!< Code de retour NOK */
+    AOTP_STRING_OVERCHARGED = 401, /*!< Code de retour chaine de caractere surchargee */
+    AOTP_ERR_CONNECT = 402, /*!< Code de retour erreur de connexion */
+
 } AOTP_RESPONSE;    /*!< Enumeration des codes de retour du protocole */
 
 /**
@@ -92,7 +95,7 @@ typedef struct {
     char ip[16];    /*!< Adresse IP du client */
     short port;     /*!< Port du client */
     client_state_t state; /*!< Etat du client */
-    
+    socket_t *socket; /*!< Socket du client */
 } client_t;          /*!< Structure d'un client */
 
 
@@ -198,7 +201,7 @@ void request2Struct(char *buffer, aotp_request_t *request);
  * \param pseudo Pseudo du client
  * \param socket Socket du client
  */
-client_t *initClient(int id, char *pseudo, client_state_t state);
+client_t *initClient(int id, char *pseudo, client_state_t state, socket_t *socket);
 
 /* ------------------------------------------------------------------------ */
 /*            M A N I P U L A T I O N    D E    P A R T I E S               */
