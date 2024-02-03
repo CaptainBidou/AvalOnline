@@ -71,19 +71,37 @@ typedef enum
 } AOTP_RESPONSE;    /*!< Enumeration des codes de retour du protocole */
 
 /**
+ * \struct client_state_t
+ * \brief Structure de l'etat d'un client
+ */
+typedef enum {
+    CLIENT_UNKOWN = 0, /*!< Etat inconnu */
+    CLIENT_SPECTATOR,  /*!< Spectateur */
+    CLIENT_READY,      /*!< Pret */
+    CLIENT_TRAIT_RED,  /*!< Trait rouge */
+    CLIENT_TRAIT_YELLOW, /*!< Trait jaune */
+} client_state_t;      /*!< Structure de l'etat d'un client */
+
+/**
  * \struct client_t
  * \brief Structure d'un client
  */
-typedef struct
-{
+typedef struct {
     int id;        /*!< Identifiant du client */
     char pseudo[20]; /*!< Pseudo du client */
     char ip[16];    /*!< Adresse IP du client */
     short port;     /*!< Port du client */
+    client_state_t state; /*!< Etat du client */
+    
 } client_t;          /*!< Structure d'un client */
 
-typedef struct client_node
-{
+
+/**
+ * \struct client_node
+ * \brief Structure d'une liste de clients
+ * \note Liste chainee de clients
+*/
+typedef struct client_node {
     client_t *client;         /*!< Clients */
     struct client_node *next; /*!< Pointeur vers le prochain client */
 } list_client_t;              /*!< Structure d'une liste de clients */
@@ -135,6 +153,8 @@ typedef struct
     char response_desc[100]; /*!< Description de la reponse */
     int client_id;
     list_party_t *parties;
+    char host_ip[16];
+    short host_port;
     position_t *position;
 } aotp_response_t; /*!< Structure de reponse du protocole */
 
@@ -178,7 +198,7 @@ void request2Struct(char *buffer, aotp_request_t *request);
  * \param pseudo Pseudo du client
  * \param socket Socket du client
  */
-void clientInit(client_t *client, int id, char *pseudo, socket_t *socket);
+client_t *initClient(int id, char *pseudo, client_state_t state);
 
 /* ------------------------------------------------------------------------ */
 /*            M A N I P U L A T I O N    D E    P A R T I E S               */

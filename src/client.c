@@ -23,6 +23,7 @@ void getPseudo(char *pseudo);
 void afficherParties();
 void connReq(char *pseudo, char *serverAddress, short serverPort);
 void host(char *hostIp, short hostPort);
+void requestJoinParty(party_id_t partyId);
 
 list_party_t* listPartyReq(char *pseudo,char *serverAddress, short serverPort);
 
@@ -40,10 +41,8 @@ void createPartyReq(char *serverAddress, short serverPort, char *hostIp, short h
 
     aotp_response_t *response = malloc(sizeof(aotp_response_t));
     recv_data(socket, response, (serialize_t) response2Struct);
-
     if(response->code == AOTP_OK) {
         printf("Partie créée !\n");
-        getchar();
         // Creation du thread d'hote
         host(hostIp, hostPort);
     }
@@ -70,10 +69,8 @@ int main(int argc, char *argv[]) {
     
     while(1){
         system("clear");
-
         COULEUR(RED);
         printf("\n\nBienvenue \e[%dm%s, \e[%dmvoici la liste des parties en cours !\n", GREEN, pseudo, RED);
-
         // Affichage des parties en cours
         afficherParties();
         menu();
@@ -81,7 +78,6 @@ int main(int argc, char *argv[]) {
         char choix = fgetc(stdin);
         clearBuffer();
         COLOR_RESET;
-
         switch (choix){
             case '1':
                 COULEUR(RED);
@@ -104,10 +100,11 @@ int main(int argc, char *argv[]) {
                 printf("------ Rejoindre une partie ------\n\n Veuillez entrer le numéro de la partie à rejoindre : ");
                 COLOR_RESET;
                 COULEUR(GREEN);
-                char numPartie = fgetc(stdin);
+                party_id_t numPartie;
+                scanf("%d", &numPartie);
                 clearBuffer();
-                printf("Num partie : %c\n", numPartie);
-                // TODO : REJOINDRE PARTIE
+                printf("Num partie : %d\n", numPartie);
+                requestJoinParty(numPartie);
             break;
 
             case '3':
@@ -291,4 +288,26 @@ void host(char *hostIp, short hostPort) {
 
     // Fermeture de la socket
     freeSocket(host_se);
+}
+
+void requestJoinParty(party_id_t partyId) {
+    // Récupération de la partie
+    party_t *party = getPartyById(parties, partyId);
+    // Création de la socket
+    socket_t *socket = connectToServer(party->host_ip, party->host_port);
+    // Envoi de la requête de connexion
+    aotp_request_t *request = createRequest(AOTP_JOIN_PARTY);
+    strcpy(request->pseudo, client->pseudo);
+    request->client_id = client->id;
+    send_data(socket, request, (serialize_t) struct2Request);
+
+    // Réception de la réponse
+    aotp_response_t *response = malloc(sizeof(aotp_response_t));
+    recv_data(socket, response, (serialize_t) response2Struct);
+
+    // Vérification de la réponse
+    // TODO : Remplacer par un handler de réponse
+    if(response->code == AOTP_OK) {
+        printf("Connexion à la partie réussie !\n");
+    }
 }

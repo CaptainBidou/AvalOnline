@@ -6,7 +6,7 @@
 
 socket_t *se;
 list_client_t *clients = NULL; // Liste des clients connectes
-list_party_t *parties;         // Liste des parties en cours
+list_party_t *parties = NULL;         // Liste des parties en cours
 
 // mutex pour la liste des clients
 sem_t *sem_clients;

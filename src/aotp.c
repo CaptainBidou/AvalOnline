@@ -1,12 +1,6 @@
 #include "aotp.h"
 
-/**
- * \fn void connectClientToHost(socket, requestData);
- * \brief Fonction de création d'une partie
- * \param socket Socket du client
- * \param requestData Requete de connexion du client
- */
-void connectClientToHost(socket_t *socket, aotp_request_t *requestData);
+party_id_t generatePartyId(list_party_t *list);
 
 /**
  * \fn party_t *createParty(socket, requestData);
@@ -38,8 +32,7 @@ void listPartiesRep(socket_t *socket, aotp_request_t *requestData, list_client_t
 */
 void connectHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties) {
     // Creation d'un nouveau client
-    client_t *client = malloc(sizeof(client_t));
-    clientInit(client, -1, requestData->pseudo, socket);
+    client_t *client = initClient(generateClientId(), requestData->pseudo, CLIENT_UNKOWN);
 
     printf("Client connecté : [%d] %s\n", client->id, client->pseudo);
     // Ajout du client a la liste des clients connectes
@@ -81,10 +74,14 @@ void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t
     case AOTP_CREATE_PARTY:
         // Creer une partie et informer le serveur d'enregistrement
         party_t *party = createParty(requestData, parties, clients);
-
         // ajoute la partie a la liste des parties
         addParty(parties, party);
-
+        // Creation de la reponse de connexion
+        aotp_response_t *response = malloc(sizeof(aotp_response_t));
+        // On remplit la réponse
+        initResponse(response, AOTP_OK, NULL, NULL);
+        // Envoi de la reponse
+        send_data(socket, response, (serialize_t) struct2Response);
         break;
     case AOTP_LIST_PARTIES:
         // TODO : Renvoyer la liste des parties
@@ -92,8 +89,9 @@ void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t
         break;
 
     case AOTP_JOIN_PARTY:
-        // TODO : Mettre en relation le client avec l'hote de la partie
-        connectClientToHost(socket, requestData);
+        client_t *client = initClient(requestData->client_id, requestData->pseudo, CLIENT_SPECTATOR);
+        addClient(clients, client);
+        
         break;
 
     default:
@@ -152,7 +150,7 @@ void request2Struct(char *buffer, aotp_request_t *request)
     while (body != NULL) {
 
         if (strncmp(body, "client_t", strlen("client_t")) == 0) sscanf(body, "client_t %d %20s", &request->client_id, request->pseudo);
-        if (strncmp(body, "party_t", strlen("party_t")) == 0) sscanf(body, "party_id_t %d", &request->party_id);
+        if (strncmp(body, "party_id_t", strlen("party_id_t")) == 0) sscanf(body, "party_id_t %d", &request->party_id);
         if (strncmp(body, "host_ip", strlen("host_ip")) == 0) sscanf(body, "host_ip %s", request->host_ip);
         if (strncmp(body, "host_port", strlen("host_port")) == 0) sscanf(body, "host_port %hd", &request->host_port);
 
@@ -174,13 +172,11 @@ void request2Struct(char *buffer, aotp_request_t *request)
  * \param pseudo Pseudo du client
  * \param socket Socket du client
  */
-void clientInit(client_t *client, int id, char *pseudo, socket_t *socket) {
-    // Si l'id est -1, on genere un id unique
-    if(id == -1) {
-        id = generateClientId();
-    }
+client_t *initClient(int id, char *pseudo, client_state_t state) {
+    client_t *client = malloc(sizeof(client_t));
     client->id = id;
     strcpy(client->pseudo, pseudo);
+    client->state = state;
 }
 
 /* ------------------------------------------------------------------------ */
@@ -373,7 +369,7 @@ void struct2Response(aotp_response_t *response, char *buffer)
 {
     // On commence par écrire le header de la requête
     sprintf(buffer, "%d %d\r\n", response->code, response->client_id);
-
+    
     // Ecriture de la ligne vide
     sprintf(buffer, "%sPARTIES\r\n", buffer);
     // Ecriture des parties
@@ -521,7 +517,8 @@ void removeParty(list_party_t **list, party_t *party) {
  */
 party_t *createParty(aotp_request_t *requestData, list_party_t **parties, list_client_t **clients) {
     // On genere un identifiant unique pour la partie
-    party_id_t id = generatePartyId(parties);
+    party_id_t id = generatePartyId(*parties);
+    printf("Creation de la partie %d\n", id);
     // On recupere le client
     client_t *host = getClientById(*clients, requestData->client_id);
     // TODO : Renvoyer une erreur si le client n'existe pas
@@ -543,8 +540,27 @@ party_t *createParty(aotp_request_t *requestData, list_party_t **parties, list_c
  * \param socket Socket du client
  * \param requestData Requete de connexion du client
  */
-void connectClientToHost(socket_t *socket, aotp_request_t *requestData) {
-    // TODO : connecter le client à l'hote
+void connectClientToHost(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties) {
+    // On récupère le client
+    client_t *client = getClientById(*clients, requestData->client_id);
+    party_t *party = getPartyById(*parties, requestData->party_id);
+
+    // Si le client ou la partie n'existe pas, on renvoie une erreur
+    if(client == NULL || party == NULL) {
+        // TODO : Renvoyer une erreur
+        return;
+    }
+    // On créer la réponse à envoyer au client
+    aotp_response_t *response = malloc(sizeof(aotp_response_t));
+    strcpy(response->host_ip, party->host_ip);
+    response->code = AOTP_OK;
+    response->host_port = party->host_port;
+
+    // Envoi de la réponse
+    send_data(socket, response, (serialize_t) struct2Response);
+
+    // Libération de la mémoire
+    free(response);
 }
 
 /**
@@ -571,7 +587,7 @@ int generateClientId() {
 */
 party_id_t generatePartyId(list_party_t *list) {
     // On compte le nombre de parties dans la liste
-    int nbParties = 1;
+    int nbParties = 0;
     list_party_t *current = list;
     while(current != NULL) {
         nbParties++;
