@@ -193,6 +193,7 @@ void createPartyReq(char *serverAddress, short serverPort, char *hostIp, short h
     send_data(socket, request, (serialize_t) struct2Request);
     aotp_response_t *response = malloc(sizeof(aotp_response_t));
     recv_data(socket, response, (serialize_t) response2Struct);
+    myParty = response->parties->party;
     if(response->code == AOTP_OK) {
         printf("Partie créée !\n");
         // Creation du thread d'hote
@@ -267,10 +268,11 @@ void *handleClient(void *arg) {
     socket_t *sd = (socket_t *) arg;
     aotp_request_t *request = malloc(sizeof(aotp_request_t));
     char *buffer = malloc(sizeof(buffer_t));
+    int stillConnected = 1;
     // Reception de la requete
-    while(1) {
-    recv_data(sd, request, (serialize_t) request2Struct);
-    requestHandler(sd, request, &players, &parties);
+    while(stillConnected) {
+        recv_data(sd, request, (serialize_t) request2Struct);
+        stillConnected = requestHandler(sd, request, &players, &parties);
     }
 
     // Lorsque c'est le client qui héberge on garde la socket de dialogue pour les échanges tant que le client ne quitte pas

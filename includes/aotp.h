@@ -170,7 +170,7 @@ typedef struct
  * \brief Fonction de gestion des requetes du protocole
  * Pour chaque requete il y un traitement specifique a effectuer
  */
-void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties);
+int requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties);
 
 /**
  * \fn void struct2Request(aotp_request_t *request, char *buffer);
@@ -248,7 +248,7 @@ void removeClient(list_client_t **head, int client_id);
  * \param parties Parties a retourner (optionnel)
  * \param position Position a retourner (optionnel)
  */
-void initResponse(aotp_response_t *response, AOTP_RESPONSE code, list_party_t *parties, position_t *position);
+void initResponse(aotp_response_t *response, AOTP_RESPONSE code, list_party_t *parties, position_t *position, int client_id);
 
 /**
  * \fn void struct2Response(aotp_response_t *response, char *buffer);
@@ -386,5 +386,14 @@ char *partyState2String(party_state_t state);
  */
 void initRequest(AOTP_REQUEST action);
 
+
+/**
+ * \fn void sendResponse(AOTP_RESPONSE code, list_party_t *parties, position_t *position);
+ * \brief Fonction d'envoi d'une reponse
+ * \param code Code de retour de la reponse
+ * \param parties Parties a retourner (optionnel)
+ * \param position Position a retourner (optionnel)
+ */
+void sendResponse(socket_t *socket, AOTP_RESPONSE code, list_party_t *parties, position_t *position, int client_id);
 
 #endif

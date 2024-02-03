@@ -1,6 +1,9 @@
 #include "aotp.h"
 
 party_id_t generatePartyId(list_party_t *list);
+
+void setReady(socket_t *socket, aotp_request_t *requestData, list_client_t **clients);
+
 void connectClientToHost(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties);
 
 /**
@@ -39,16 +42,9 @@ void connectHandler(socket_t *socket, aotp_request_t *requestData, list_client_t
     // Ajout du client a la liste des clients connectes
     addClient(clients, client);
 
-    // Creation de la reponse de connexion
-    aotp_response_t *response = malloc(sizeof(aotp_response_t));
-    // On remplit la réponse
-    initResponse(response, AOTP_OK, NULL, NULL);
-    response->client_id = client->id;
-    // Envoi de la reponse
-    send_data(socket, response, (serialize_t) struct2Response);
+    sendResponse(socket, AOTP_OK, NULL, NULL, client->id);
 
     // Liberation de la memoire
-    free(response);
     free(requestData);
 }
 
@@ -57,7 +53,7 @@ void connectHandler(socket_t *socket, aotp_request_t *requestData, list_client_t
  * \brief Fonction de gestion des requetes du protocole
  * Pour chaque requete il y un traitement specifique a effectuer
  */
-void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties)
+int requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties)
 {
     AOTP_REQUEST action = requestData->action;
     switch (action)
@@ -70,6 +66,7 @@ void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t
     case AOTP_DISCONNECT:
         // supprime le client de la liste
         removeClient(clients, requestData->client_id);
+        return 0;
         break;
 
     case AOTP_CREATE_PARTY:
@@ -77,12 +74,11 @@ void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t
         party_t *party = createParty(requestData, parties, clients);
         // ajoute la partie a la liste des parties
         addParty(parties, party);
-        // Creation de la reponse de connexion
-        aotp_response_t *response = malloc(sizeof(aotp_response_t));
-        // On remplit la réponse
-        initResponse(response, AOTP_OK, NULL, NULL);
-        // Envoi de la reponse
-        send_data(socket, response, (serialize_t) struct2Response);
+        // envoie la reponse au client
+        list_party_t *playerParty = NULL;
+        addParty(&playerParty, party);
+        sendResponse(socket, AOTP_OK, playerParty, NULL, 0);
+        removeParty(&playerParty, party);
         break;
     case AOTP_LIST_PARTIES:
         // TODO : Renvoyer la liste des parties
@@ -96,9 +92,16 @@ void requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t
         connectClientToHost(socket, requestData, clients, parties);
         break;
 
+    case AOTP_SET_READY:
+        // Change l'etat du client en prêt, et lance la partie si tous les clients sont prêts
+        setReady(socket, requestData, clients);
+        break;
+
     default:
         break;
     }
+    
+    return 1;
 }
 
 /**
@@ -355,11 +358,12 @@ void removeClient(list_client_t **head, int client_id) {
  * \param parties Parties a retourner (optionnel)
  * \param position Position a retourner (optionnel)
  */
-void initResponse(aotp_response_t *response, AOTP_RESPONSE code, list_party_t *parties, position_t *position)
+void initResponse(aotp_response_t *response, AOTP_RESPONSE code, list_party_t *parties, position_t *position, int client_id)
 {
     response->code = code;
     response->parties = parties;
     response->position = position;
+    response->client_id = client_id;
 }
 
 /**
@@ -546,15 +550,8 @@ party_t *createParty(aotp_request_t *requestData, list_party_t **parties, list_c
 void connectClientToHost(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties) {
     client_t *client = initClient(requestData->client_id, requestData->pseudo, CLIENT_SPECTATOR, socket);
     addClient(clients, client);
-        
     // On envoie une réponse au client
-    aotp_response_t *response = malloc(sizeof(aotp_response_t));
-    initResponse(response, AOTP_OK, NULL, NULL);
-
-    // Envoi de la reponse
-    send_data(socket, response, (serialize_t) struct2Response);
-    // Liberation de la memoire
-    free(response);
+    sendResponse(socket, AOTP_OK, NULL, NULL, 0);
 }
 
 /**
@@ -682,28 +679,59 @@ void listPartiesRep(socket_t *socket, aotp_request_t *requestData, list_client_t
     // on verifie que le client existe 
     client_t *client = getClientById(*clients, requestData->client_id);
     if(client == NULL) {
-        // Creation de la reponse de connexion
-        aotp_response_t *response = malloc(sizeof(aotp_response_t));
-        // On remplit la réponse
-        initResponse(response, AOTP_NOK, NULL, NULL);
-        response->client_id = requestData->client_id;
-        // Envoi de la reponse
-        send_data(socket, response, (serialize_t) struct2Response);
-
-        // Liberation de la memoire
-        free(response);
+        sendResponse(socket, AOTP_ERR_CONNECT, NULL, NULL, 0);
         free(requestData);
         return;
     }
-    // Creation de la reponse de connexion
-    aotp_response_t *response = malloc(sizeof(aotp_response_t));
-    // On remplit la réponse
-    initResponse(response, AOTP_OK, *parties, NULL);
+    // Envoie de la liste des parties
+    sendResponse(socket, AOTP_OK, *parties, NULL, 0);
 
-    // Envoi de la reponse
-    send_data(socket, response, (serialize_t) struct2Response);
-
-    // Liberation de la memoire
-    free(response);
     free(requestData);
+}
+
+void setReady(socket_t *socket, aotp_request_t *requestData, list_client_t **clients) {
+    // On recupere le client
+    client_t *client = getClientById(*clients, requestData->client_id);
+    if(client == NULL) {
+        // TODO : Renvoyer une erreur au client
+    }
+    // On change l'etat du client
+    client->state = CLIENT_READY;
+
+    // On envoie la reponse au client
+    sendResponse(socket, AOTP_OK, NULL, NULL,0);
+
+}
+
+/**
+ * int is2PlayersReady(list_client_t *clients);
+ * \brief Fonction de vérification de l'état des joueurs
+ * \param clients Liste des clients
+ * \return 1 si les deux joueurs sont prêts, 0 sinon
+ */
+int is2PlayersReady(list_client_t *clients) {
+    int nbReady = 0;
+    list_client_t *current = clients;
+    while(current != NULL) {
+        if(current->client->state == CLIENT_READY) nbReady++;
+        current = current->next;
+    }
+    return nbReady == 2;
+}
+
+
+/**
+ * \fn void sendResponse(AOTP_RESPONSE code, list_party_t *parties, position_t *position);
+ * \brief Fonction d'envoi d'une reponse
+ * \param code Code de retour de la reponse
+ * \param parties Parties a retourner (optionnel)
+ * \param position Position a retourner (optionnel)
+ */
+void sendResponse(socket_t *socket, AOTP_RESPONSE code, list_party_t *parties, position_t *position, int client_id) {
+    // Creation de la reponse de connexion
+    aotp_response_t response;
+    // On remplit la réponse
+    initResponse(&response, code, parties, position, client_id);
+    // Envoi de la reponse
+    send_data(socket, &response, (serialize_t) struct2Response);
 }

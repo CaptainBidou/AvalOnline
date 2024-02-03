@@ -29,8 +29,8 @@ void *handleClient(void *arg) {
 
 int main() {
     se = createListeningSocket(DEFAULT_AOTP_IP, DEFAULT_AOTP_PORT, DEFAULT_AOTP_MAX_CLIENTS);
-    sem_clients = create_sem(0);
-    sem_parties = create_sem(0);
+    sem_clients = create_sem(1);
+    sem_parties = create_sem(1);
     socket_t *sd;
 
     while(1) {
