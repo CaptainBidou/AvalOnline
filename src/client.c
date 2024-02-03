@@ -525,14 +525,6 @@ void jouerPartyHost(socket_t * jaune,socket_t* rouge ) {
     //send_fin(rouge);
     //TODO : req pour prévenenir le jaune que la partie est terminée 
     //send_fin(jaune);
-    
-    //TODO : attendre la réponse du client pour savoir si il veut rejouer ou non
-    //char choix = getChoix(jaune);
-
-    //TODO : en fonction du choix du client on recommence ou on arrête
-    //if(choix == 'o') jouerPartyHost(jaune,rouge);
-    //else{tuerServeur(); }
-    
 
 
 }
