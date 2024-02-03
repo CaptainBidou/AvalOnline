@@ -496,9 +496,7 @@ void jouerPartyHost(socket_t * jaune,socket_t* rouge ) {
     while(getCoupsLegaux(p).nb > 0){
 
         //TODO : req pour dire au jaune de jouer son coup
-        //send_trait(jaune);
-        //TODO : attendre la réponse du jaune 
-        //coup = getCoup(jaune);
+        //coup = send_trait(jaune);
         p= jouerCoup(p,coup.origine,coup.destination);
 
         //TODO : req pour envoyer la position au jaune
@@ -507,9 +505,7 @@ void jouerPartyHost(socket_t * jaune,socket_t* rouge ) {
         //send_position(rouge,p);
 
         //TODO : req pour dire au rouge de jouer son coup
-        //send_trait(rouge);
-        //TODO : attendre la réponse du rouge
-        //coup = getCoup(rouge);
+        //coup=send_trait(rouge);
         p= jouerCoup(p,coup.origine,coup.destination);
 
         //TODO : req pour envoyer la position au jaune
