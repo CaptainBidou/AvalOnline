@@ -164,47 +164,7 @@ void request2Struct(char *buffer, aotp_request_t *request)
     free(bufferCopy);
 }
 
-/* ------------------------------------------------------------------------ */
-/*            M A N I P U L A T I O N    D E    C L I E N T S               */
-/* ------------------------------------------------------------------------ */
 
-/**
- * \fn void clientInit(client_t *client, int id, char *pseudo, socket_t socket);
- * \brief Fonction d'initialisation d'un client
- * \param client Client a initialiser
- * \param id Identifiant du client
- * \param pseudo Pseudo du client
- * \param socket Socket du client
- */
-client_t *initClient(int id, char *pseudo, client_state_t state, socket_t *socket) {
-    client_t *client = malloc(sizeof(client_t));
-    client->id = id;
-    strcpy(client->pseudo, pseudo);
-    client->state = state;
-    client->socket = socket;
-}
-
-/* ------------------------------------------------------------------------ */
-/*            M A N I P U L A T I O N    D E    P A R T I E S               */
-/* ------------------------------------------------------------------------ */
-
-/**
- * \fn void partyInit(party_t *party, party_id_t id, client_t *host, party_state_t state);
- * \brief Fonction d'initialisation d'une partie
- * \param party Partie a initialiser
- * \param id Identifiant de la partie
- * \param host Hote de la partie
- * \param state Etat de la partie
- */
-party_t *partyInit(party_id_t id, client_t *host, party_state_t state) {
-    party_t *party = malloc(sizeof(party_t));
-    party->id = id;
-    party->state = state;
-    strcpy(party->host_pseudo, host->pseudo);
-    strcpy(party->host_ip, host->ip);
-    party->host_port = host->port;
-    return party;
-}
 
 /**
  * \fn void partyToString(party_t *party, char *buffer);
@@ -279,74 +239,6 @@ void evolutionToString(evolution_t *evolution, char *buffer)
 void stringToEvolution(char *buffer, evolution_t *evolution)
 {
     sscanf(buffer, "%c %c %c %c", &evolution->bonusJ, &evolution->malusJ, &evolution->bonusR, &evolution->malusR);
-}
-
-/**
- * \fn list_client_t *initClientList(client_t *client);
- * \brief Fonction d'initialisation d'une liste de clients
- * \param list Liste de clients a initialiser
- */
-list_client_t *initClientList(client_t *client)
-{
-    list_client_t *list = malloc(sizeof(list_client_t));
-    list->client = client;
-    list->next = NULL;
-    return list;
-}
-
-/**
- * \fn void addClient(list_client_t **head, client_t *client);
- * \brief Fonction d'ajout d'un client a une liste de clients
- * \param list Liste de clients
- * \param client Client a ajouter
- */
-void addClient(list_client_t **head, client_t *client)
-{
-    list_client_t *newClient = malloc(sizeof(list_client_t));
-    newClient->client = client;
-    newClient->next = NULL;
-    if (*head == NULL)
-    {
-        *head = newClient;
-    }
-    else
-    {
-        list_client_t *current = *head;
-        while (current->next != NULL)
-        {
-            current = current->next;
-        }
-        current->next = newClient;
-    }
-}
-
-/**
- * \fn void removeClient(list_client_t *list, client_t *client);
- * \brief Fonction de suppression d'un client d'une liste de clients
- * \param list Liste de clients
- * \param client Client a supprimer
- */
-void removeClient(list_client_t **head, int client_id) {
-    list_client_t *current = *head;
-    list_client_t *previous = NULL;
-    while (current != NULL)
-    {
-        if (current->client->id == client_id)
-        {
-            if (previous == NULL)
-            {
-                *head = current->next;
-            }
-            else
-            {
-                previous->next = current->next;
-            }
-            free(current);
-            break;
-        }
-        previous = current;
-        current = current->next;
-    }
 }
 
 /**
@@ -466,57 +358,6 @@ void response2Struct(char *buffer, aotp_response_t *response) {
 }
 
 /**
- * \fn list_party_t initPartyList(party_t *party);
- * \brief Fonction d'initialisation d'une liste de parties
- * \param list Liste de parties a initialiser
- * \param party Partie a ajouter (optionnel)
- */
-list_party_t *initPartyList(party_t *party) {
-    list_party_t *list = malloc(sizeof(list_party_t));
-    list->party = party;
-    list->next = NULL;
-    return list;
-}
-
-/**
- * \fn void addParty(list_party_t **head, party_t *party);
- * \brief Fonction d'ajout d'une partie a une liste de parties
- * \param head Liste de parties
- * \param party Partie a ajouter
- */
-void addParty(list_party_t **head, party_t *party) {
-    list_party_t *newParty = initPartyList(party);
-    if (*head == NULL) *head = newParty;
-    else {
-        list_party_t *current = *head;
-        while (current->next != NULL) current = current->next;
-        current->next = newParty;
-    }
-}
-
-/**
- * \fn void removeParty(list_party_t *list, party_t *party);
- * \brief Fonction de suppression d'une partie d'une liste de parties
- * \param list Liste de parties
- * \param party Partie a supprimer
- */
-void removeParty(list_party_t **list, party_t *party) {
-    list_party_t *current = *list;
-    list_party_t *previous = NULL;
-    
-    while (current != NULL) {
-        if (current->party->id == party->id) {
-            if (previous == NULL) *list = current->next;
-            else previous->next = current->next;
-            free(current);
-            break;
-        }
-        previous = current;
-        current = current->next;
-    }
-}
-
-/**
  * \fn party_t *createParty(socket, requestData);
  * \brief Fonction de création d'une partie
  * \param socket Socket du client
@@ -539,7 +380,6 @@ party_t *createParty(aotp_request_t *requestData, list_party_t **parties, list_c
     party_t *party = partyInit(id, host, PARTY_WAITING);
 
     return party;
-
 }
 
 /**
@@ -562,76 +402,7 @@ void connectClientToHost(socket_t *socket, aotp_request_t *requestData, list_cli
     sendResponse(socket, AOTP_PARTY_JOINED, party, NULL, 0);
 }
 
-/**
- * \fn int generateClientId() 
- * \brief Fonction de generation d'un identifiant unique pour un client
- * \return Identifiant unique
- */
-int generateClientId() {
-    // On recupere le timestamp actuel
-    time_t timestamp = time(NULL);
-    // On recupere l'identifiant du processus
-    int pid = getpid();
 
-    // On concatene les deux valeurs
-    int id = timestamp + pid;
-
-    return id;
-}
-
-/**
- * \fn party_id_t generatePartyId(list_party_t *list);
- * \brief Fonction de generation d'un identifiant unique pour une partie
- * \return Identifiant unique
-*/
-party_id_t generatePartyId(list_party_t *list) {
-    // On compte le nombre de parties dans la liste
-    int nbParties = 0;
-    list_party_t *current = list;
-    while(current != NULL) {
-        nbParties++;
-        current = current->next;
-    }
-    // On genere un identifiant unique
-    party_id_t id = nbParties + 1;
-    return id;
-}
-
-/*
- * \fn client_t *getClientById(list_client_t *list, int id);
- * \brief Fonction de recuperation d'un client par son identifiant
- * \param list Liste de clients
- * \param id Identifiant du client
- * \return Client correspondant a l'identifiant ou NULL
- */
-client_t *getClientById(list_client_t *list, int id) {
-    list_client_t *current = list;
-    while(current != NULL) {
-        if(current->client->id == id) {
-            return current->client;
-        }
-        current = current->next;
-    }
-    return NULL;
-}
-
-/**
- * \fn party_t *getPartyById(list_party_t *list, party_id_t id);
- * \brief Fonction de recuperation d'une partie par son identifiant
- * \param list Liste de parties
- * \param id Identifiant de la partie
- * \return Partie correspondante a l'identifiant ou NULL
- */
-party_t *getPartyById(list_party_t *list, party_id_t id) {
-    list_party_t *current = list;
-    while(current != NULL) {
-        if(current->party->id == id) {
-            return current->party;
-        }
-        current = current->next;
-    }
-    return NULL;
-}
 
 
 /**
@@ -645,33 +416,6 @@ aotp_request_t *createRequest(AOTP_REQUEST action) {
     return request;
 }
 
-/**
- * \fn char *partyState2String(party_state_t state);
- * \brief Transforme un status de partie en chaine de caractères
- * \param state Etat de la partie
- * \return Chaine de caractères correspondant à l'état de la partie
- * \note la chaine de caractères est allouée dynamiquement, il faut donc la libérer après utilisation
- */ 
-char *partyState2String(party_state_t state) {
-    char *str = malloc(sizeof(char) * 20);
-    switch (state)
-    {
-    case PARTY_PLAYING:
-        strcpy(str, "PLAYING");
-        break;
-
-    case PARTY_WAITING:
-        strcpy(str, "WAITING");
-        break;
-
-    case PARTY_FINISHED:
-        strcpy(str, "FINISHED");
-        break;
-    default:
-        break;
-    }
-    return str;
-}
 
 /**
  * \fn void listPartiesRep(socket, parties, requestData->client_id);
@@ -708,21 +452,7 @@ void setReady(socket_t *socket, aotp_request_t *requestData, list_client_t **cli
 
 }
 
-/**
- * int is2PlayersReady(list_client_t *clients);
- * \brief Fonction de vérification de l'état des joueurs
- * \param clients Liste des clients
- * \return 1 si les deux joueurs sont prêts, 0 sinon
- */
-int is2PlayersReady(list_client_t *clients) {
-    int nbReady = 0;
-    list_client_t *current = clients;
-    while(current != NULL) {
-        if(current->client->state == CLIENT_READY) nbReady++;
-        current = current->next;
-    }
-    return nbReady == 2;
-}
+
 
 
 /**

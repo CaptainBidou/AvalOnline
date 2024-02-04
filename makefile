@@ -7,7 +7,7 @@ SRC_DIR = src
 INCLUDE_DIR = includes
 LD_FLAGS = -lpthread
 # Listes des programmes à générer sans prefixe
-PROGLIST= server client
+PROGLIST= server app
 PROGRAMMES=$(addprefix $(BIN_DIR)/, $(PROGLIST))
 
 
@@ -50,7 +50,17 @@ $(OBJ_DIR)/aotp.o: $(SRC_DIR)/aotp.c $(INCLUDE_DIR)/aotp.h
 	@echo "Compilation de $<"
 	@gcc -c $< -o $@ -I$(INCLUDE_DIR) -DAOTP_DEBUG
 
-$(OBJ_DIR)/libInet.a: $(OBJ_DIR)/session.o $(OBJ_DIR)/avalam.o $(OBJ_DIR)/data.o $(OBJ_DIR)/aotp.o
+$(OBJ_DIR)/client.o: $(SRC_DIR)/client.c $(INCLUDE_DIR)/client.h
+	@mkdir -p $(OBJ_DIR)
+	@echo "Compilation de $<"
+	@gcc -c $< -o $@ -I$(INCLUDE_DIR)
+
+$(OBJ_DIR)/party.o: $(SRC_DIR)/party.c $(INCLUDE_DIR)/party.h
+	@mkdir -p $(OBJ_DIR)
+	@echo "Compilation de $<"
+	@gcc -c $< -o $@ -I$(INCLUDE_DIR)
+
+$(OBJ_DIR)/libInet.a: $(OBJ_DIR)/session.o $(OBJ_DIR)/avalam.o $(OBJ_DIR)/data.o $(OBJ_DIR)/aotp.o $(OBJ_DIR)/client.o $(OBJ_DIR)/party.o
 	@mkdir -p $(OBJ_DIR)
 	@echo "Compilation de $<"
 	@ar -crs $@ $^
@@ -70,6 +80,6 @@ clean:
 	@echo "Suppression des fichiers objets et des executables"
 	@rm -rf $(BIN_DIR)/*
 	@rm -rf $(OBJ_DIR)/*
-	@rm -rf server client
+	@rm -rf server app
 	@rm -rf docs/*
 
