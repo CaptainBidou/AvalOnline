@@ -36,16 +36,11 @@ void listPartiesRep(socket_t *socket, aotp_request_t *requestData, list_client_t
 */
 void connectHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties) {
     // Creation d'un nouveau client
-    client_t *client = initClient(generateClientId(), requestData->pseudo, CLIENT_UNKOWN, NULL);
-
+    client_t *client = initClient(generateClientId(), requestData->pseudo, CLIENT_UNKOWN, socket);
     printf("Client connecté : [%d] %s\n", client->id, client->pseudo);
     // Ajout du client a la liste des clients connectes
     addClient(clients, client);
-
-    sendResponse(socket, AOTP_OK, NULL, NULL, client->id);
-
-    // Liberation de la memoire
-    free(requestData);
+    sendResponse(socket, AOTP_CONN_OK, NULL, NULL, client->id);
 }
 
 /**
@@ -66,6 +61,7 @@ int requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t 
     case AOTP_DISCONNECT:
         // supprime le client de la liste
         removeClient(clients, requestData->client_id);
+        sendResponse(socket, AOTP_OK, NULL, NULL, 0);
         return 0;
         break;
 
@@ -77,7 +73,7 @@ int requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t 
         // envoie la reponse au client
         list_party_t *playerParty = NULL;
         addParty(&playerParty, party);
-        sendResponse(socket, AOTP_OK, playerParty, NULL, 0);
+        sendResponse(socket, AOTP_PARTY_CREATED, playerParty, NULL, 0);
         removeParty(&playerParty, party);
         break;
     case AOTP_LIST_PARTIES:
@@ -163,6 +159,9 @@ void request2Struct(char *buffer, aotp_request_t *request)
         // Passe à la ligne suivante
         body = strtok_r(NULL, "\r\n", &saveptr);
     }
+
+    // Liberation de la memoire
+    free(bufferCopy);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -419,6 +418,8 @@ void response2Struct(char *buffer, aotp_response_t *response) {
     char *saveptr;
     char *body;
     strcpy(bufferCopy, buffer);
+    response->parties = NULL;
+    response->position = NULL;
 
     // Recuperation du header
     char *header = strtok_r(bufferCopy, "\r\n", &saveptr);
@@ -550,8 +551,15 @@ party_t *createParty(aotp_request_t *requestData, list_party_t **parties, list_c
 void connectClientToHost(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties) {
     client_t *client = initClient(requestData->client_id, requestData->pseudo, CLIENT_SPECTATOR, socket);
     addClient(clients, client);
+    // On recupere la partie
+    if(*parties == NULL) {
+        sendResponse(socket, AOTP_ERR_CONNECT, NULL, NULL, 0);
+        return;
+    }
+    // On recupere la partie
+    list_party_t *party = *parties;
     // On envoie une réponse au client
-    sendResponse(socket, AOTP_OK, NULL, NULL, 0);
+    sendResponse(socket, AOTP_PARTY_JOINED, party, NULL, 0);
 }
 
 /**
@@ -680,13 +688,10 @@ void listPartiesRep(socket_t *socket, aotp_request_t *requestData, list_client_t
     client_t *client = getClientById(*clients, requestData->client_id);
     if(client == NULL) {
         sendResponse(socket, AOTP_ERR_CONNECT, NULL, NULL, 0);
-        free(requestData);
         return;
     }
     // Envoie de la liste des parties
-    sendResponse(socket, AOTP_OK, *parties, NULL, 0);
-
-    free(requestData);
+    sendResponse(socket, AOTP_PARTY_LIST_RETREIVED, *parties, NULL, 0);
 }
 
 void setReady(socket_t *socket, aotp_request_t *requestData, list_client_t **clients) {
@@ -699,7 +704,7 @@ void setReady(socket_t *socket, aotp_request_t *requestData, list_client_t **cli
     client->state = CLIENT_READY;
 
     // On envoie la reponse au client
-    sendResponse(socket, AOTP_OK, NULL, NULL,0);
+    sendResponse(socket, AOTP_PARTY_STATE_UPDATED, NULL, NULL,0);
 
 }
 

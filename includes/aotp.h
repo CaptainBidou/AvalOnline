@@ -66,6 +66,12 @@ typedef enum
 {
     // Code de retour du serveur d'enregistrement
     AOTP_OK = 200, /*!< Code de retour OK */
+    AOTP_CONN_OK = 201, /*!< Code de retour connexion OK */
+    AOTP_PARTY_CREATED = 202, /*!< Code de retour partie creee */
+    AOTP_PARTY_JOINED = 203, /*!< Code de retour partie rejointe */
+    AOTP_PARTY_LIST_RETREIVED = 204, /*!< Code de retour liste des parties recuperee */
+    AOTP_PARTY_STATE_UPDATED = 205, /*!< Code de retour etat de la partie mis a jour */
+    
 
     AOTP_NOK = 400, /*!< Code de retour NOK */
     AOTP_STRING_OVERCHARGED = 401, /*!< Code de retour chaine de caractere surchargee */

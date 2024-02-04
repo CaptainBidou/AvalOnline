@@ -12,12 +12,13 @@
 #define BLUE 34
 
 
+
 list_party_t *parties = NULL; // Liste des parties en cours
 party_t *myParty = NULL; // Informations de la partie de l'utilisateur
 
 list_client_t *players = NULL; // Liste des joueurs connectés
 client_t *client = NULL; // Informations du client
-void createPartyReq(char *serverAddress, short serverPort, char *hostIp, short hostPort);
+aotp_response_t createPartyReq(socket_t *socket, char *hostIp, short hostPort);
 
 // Fonctions propre à l'interface
 void clearBuffer();
@@ -27,32 +28,39 @@ void getPseudo(char *pseudo);
 void afficherParties();
 void promptHostIpPort(char *hostIp, short *hostPort);
 void playGame(client_t *client, party_state_t state);
-
+void exitFunction(); // Fonction de sortie
+void handleResponse(aotp_response_t response_data);
 // Thread du serveur d'hébergement
 void host(char *hostIp, short hostPort);
+
 // Requete vers le serveur d'enregistrement
-void requestJoinParty(client_t *client, party_id_t partyId);
-list_party_t* listPartyReq(char *pseudo,char *serverAddress, short serverPort);
-void connReq(char *pseudo, char *serverAddress, short serverPort);
+aotp_response_t requestJoinParty(client_t *client, party_id_t partyId);
+aotp_response_t listPartyReq(socket_t *socket);
+aotp_response_t connReq(socket_t *socket, char *pseudo);
 
 // Requete vers le serveur de jeu
-position_t* jouerCoupReq(client_t *client, position_t p, char origine, char destination);
-position_t* jouerEvolutionReq(client_t *client, position_t p, char origine, char destination);
+aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char destination);
+aotp_response_t jouerEvolutionReq(client_t *client, position_t p, char origine, char destination);
 
 socket_t *host_se, *host_sd; // Socket d'écoute et socket de dialogue
 
 int main(int argc, char *argv[]) {
+    atexit(exitFunction);
     char *serverAddress;
     short serverPort;
     client = initClient(-1, "", CLIENT_UNKOWN, NULL);
+    aotp_response_t response;
 
     // Récupération des arguments
     getServerAddress(argc, argv, &serverAddress, &serverPort);
     getPseudo(client->pseudo);
     system("clear");
-    connReq(client->pseudo, serverAddress, serverPort);
+    socket_t *clientSocket = connectToServer(serverAddress, serverPort);
+    response = connReq(clientSocket, client->pseudo);
+    handleResponse(response);
 
-    parties = listPartyReq(client->pseudo,serverAddress,serverPort);
+    response = listPartyReq(clientSocket);
+    handleResponse(response);
 
     // Barre de chargement
     loadingBar();
@@ -74,8 +82,8 @@ int main(int argc, char *argv[]) {
                 short hostPort;
                 COULEUR(RED);
                 promptHostIpPort(hostIp, &hostPort);
-                createPartyReq(serverAddress, serverPort, hostIp, hostPort);
-
+                response = createPartyReq(clientSocket, hostIp, hostPort);
+                handleResponse(response);
                 // TODO : CREER PARTIE
                 break;
             case '2':
@@ -86,7 +94,6 @@ int main(int argc, char *argv[]) {
                 party_id_t numPartie;
                 scanf("%d", &numPartie);
                 clearBuffer();
-                printf("Num partie : %d\n", numPartie);
                 requestJoinParty(client, numPartie);
             break;
 
@@ -181,8 +188,7 @@ void afficherParties() {
 
 }
 
-void createPartyReq(char *serverAddress, short serverPort, char *hostIp, short hostPort) {
-    socket_t *socket = connectToServer(serverAddress, serverPort);
+aotp_response_t createPartyReq(socket_t *socket, char *hostIp, short hostPort) {
     aotp_request_t *request = createRequest(AOTP_CREATE_PARTY);
     request->client_id = client->id;
     strcpy(request->pseudo, client->pseudo);
@@ -191,20 +197,13 @@ void createPartyReq(char *serverAddress, short serverPort, char *hostIp, short h
     strcpy(request->host_ip, hostIp);
     request->host_port = hostPort;
     send_data(socket, request, (serialize_t) struct2Request);
-    aotp_response_t *response = malloc(sizeof(aotp_response_t));
-    recv_data(socket, response, (serialize_t) response2Struct);
-    myParty = response->parties->party;
-    if(response->code == AOTP_OK) {
-        printf("Partie créée !\n");
-        // Creation du thread d'hote
-        host(hostIp, hostPort);
-    }
+    aotp_response_t response;
+    recv_data(socket, &response, (serialize_t) response2Struct);
+
+    return response;
 }
 
-void connReq(char *pseudo, char *serverAddress, short serverPort) {
-    // Création de la socket
-    socket_t *socket = connectToServer(serverAddress, serverPort);
-
+aotp_response_t connReq(socket_t *socket, char *pseudo) {
     // Envoi de la requête de connexion
     aotp_request_t *request = createRequest(AOTP_CONNECT);
     strcpy(request->pseudo, pseudo);
@@ -212,55 +211,37 @@ void connReq(char *pseudo, char *serverAddress, short serverPort) {
     send_data(socket, request, (serialize_t) struct2Request);
 
     // Réception de la réponse
-    aotp_response_t *response = malloc(sizeof(aotp_response_t));
-    recv_data(socket, response, (serialize_t) response2Struct);
+    aotp_response_t response;
+    recv_data(socket, &response, (serialize_t) response2Struct);
 
     // Vérification de la réponse
     // TODO : Remplacer par un handler de réponse
-    if(response->code == AOTP_OK) {
+    if(response.code == AOTP_OK) {
         printf("Connexion réussie !\n");
-        printf("Votre ID : %d\n", response->client_id);
-        client->id = response->client_id;
+        printf("Votre ID : %d\n", response.client_id);
+        client->id = response.client_id;
         
     }
     // Libération de la mémoire
-    free(response);
     free(request);
-    freeSocket(socket);
+
+    return response;
 }
 
 
-list_party_t* listPartyReq(char *pseudo,char *serverAddress, short serverPort){
-    // Création de la socket
-    socket_t *socket = connectToServer(serverAddress, serverPort);
-
+aotp_response_t listPartyReq(socket_t *socket) {
     // Envoi de la requête de connexion
     aotp_request_t *request = createRequest(AOTP_LIST_PARTIES);
-    strcpy(request->pseudo, pseudo);
     request->client_id = client->id;
     send_data(socket, request, (serialize_t) struct2Request);
 
     // Réception de la réponse
-    aotp_response_t *response = malloc(sizeof(aotp_response_t));
-    recv_data(socket, response, (serialize_t) response2Struct);
+    aotp_response_t response;
+    recv_data(socket, &response, (serialize_t) response2Struct);
 
     // Vérification de la réponse
     // TODO : Remplacer par un handler de réponse
-    
-    //afficher les parties de la liste
-
-    list_party_t* tmp = response->parties;
-
-    // Libération de la mémoire
-    
-    free(request);
-    freeSocket(socket);
-    free(response);
-
-    return tmp;
-    
-   
-
+    return response;
 }
 
 void *handleClient(void *arg) {
@@ -269,11 +250,14 @@ void *handleClient(void *arg) {
     aotp_request_t *request = malloc(sizeof(aotp_request_t));
     char *buffer = malloc(sizeof(buffer_t));
     int stillConnected = 1;
+    list_party_t *hostParty = NULL;
+    addParty(&parties, myParty); // Ajout de la partie de l'hôte à la liste pour l'handler
     // Reception de la requete
     while(stillConnected) {
         recv_data(sd, request, (serialize_t) request2Struct);
-        stillConnected = requestHandler(sd, request, &players, &parties);
+        stillConnected = requestHandler(sd, request, &players, &hostParty);
     }
+    removeParty(&hostParty, myParty); // Suppression et libération de la mémoire de la liste créée pour l'handler
 
     // Lorsque c'est le client qui héberge on garde la socket de dialogue pour les échanges tant que le client ne quitte pas
     // La socket est fermée dans le handler de requête
@@ -295,7 +279,7 @@ void host(char *hostIp, short hostPort) {
     freeSocket(host_se);
 }
 
-position_t* jouerCoupReq(client_t *client, position_t p, char origine, char destination){
+aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char destination){
     p = jouerCoup(p,origine,destination);
 
     // Création de la socket
@@ -308,27 +292,16 @@ position_t* jouerCoupReq(client_t *client, position_t p, char origine, char dest
     send_data(socket, request, (serialize_t) struct2Request);
 
     // Réception de la réponse
-    aotp_response_t *response = malloc(sizeof(aotp_response_t));
-    recv_data(socket, response, (serialize_t) response2Struct);
-
-    // Vérification de la réponse
-    // TODO : Remplacer par un handler de réponse
-    
-    //afficher les parties de la liste
-
-    position_t* tmp = response->position;
+    aotp_response_t response;
+    recv_data(socket, &response, (serialize_t) response2Struct);
 
     // Libération de la mémoire
-    
     free(request);
-    freeSocket(socket);
-    free(response);
-
-    return tmp;
+    return response;
     
 }
 
-position_t* jouerEvolutionReq(client_t *client, position_t p, char origine, char destination){
+aotp_response_t jouerEvolutionReq(client_t *client, position_t p, char origine, char destination){
 
     p = jouerCoup(p,origine,destination);
     // Création de la socket
@@ -342,27 +315,28 @@ position_t* jouerEvolutionReq(client_t *client, position_t p, char origine, char
     send_data(socket, request, (serialize_t) struct2Request);
 
     // Réception de la réponse
-    aotp_response_t *response = malloc(sizeof(aotp_response_t));
-    recv_data(socket, response, (serialize_t) response2Struct);
+    aotp_response_t response;
+    recv_data(socket, &response, (serialize_t) response2Struct);
 
     // Vérification de la réponse
     // TODO : Remplacer par un handler de réponse
-    
-    //afficher les parties de la liste
-    position_t* tmp = response->position;
 
     // Libération de la mémoire
-    
     free(request);
-    free(response);
 
-    return tmp;
+    return response;
     
 }
 
-void requestJoinParty(client_t *client, party_id_t partyId) {
+aotp_response_t requestJoinParty(client_t *client, party_id_t partyId) {
     // Récupération de la partie
     party_t *party = getPartyById(parties, partyId);
+    if(party == NULL) {
+        COULEUR(RED);
+        printf("ERREUR : La partie n'existe pas !\n");
+        COLOR_RESET;
+        return;
+    }
     // Création de la socket
     client->socket = connectToServer(party->host_ip, party->host_port);
 
@@ -372,14 +346,9 @@ void requestJoinParty(client_t *client, party_id_t partyId) {
     send_data(client->socket, request, (serialize_t) struct2Request);
 
     // Réception de la réponse
-    aotp_response_t *response = malloc(sizeof(aotp_response_t));
-    recv_data(client->socket, response, (serialize_t) response2Struct);
-
-    // Vérification de la réponse
-    // TODO : Remplacer par un handler de réponse
-    if(response->code == AOTP_OK) {
-        printf("Connexion à la partie réussie !\n");
-    }
+    aotp_response_t response;
+    recv_data(client->socket, &response, (serialize_t) response2Struct);
+    return response;
 }
 
 /**
@@ -443,4 +412,47 @@ void promptHostIpPort(char *hostIp, short *hostPort) {
     COULEUR(GREEN);
     scanf("%hd", hostPort);
     COLOR_RESET;
+}
+
+void exitFunction() {
+    // Envoi de la requête de déconnexion au serveur d'enregistrement
+    
+    // Libération de la mémoire
+}
+
+
+void handleResponse(aotp_response_t response_data) {
+    switch (response_data.code) {
+        case AOTP_OK:
+            // Traitement pour les réponses OK
+            break;
+
+        case AOTP_CONN_OK:
+            client->id = response_data.client_id;
+            break;
+
+        case AOTP_PARTY_CREATED:
+            myParty = response_data.parties->party;
+            // TODO : remplacer par un thread pour que l'host puisse continuer à jouer
+            host(myParty->host_ip, myParty->host_port);
+            break;
+        case AOTP_PARTY_JOINED:
+            playGame(client, response_data.parties->party->state);
+        break;
+        
+        case AOTP_PARTY_LIST_RETREIVED:
+            if(parties != NULL) {
+                // TODO : Libérer la mémoire de la liste des parties
+            }
+            parties = response_data.parties;
+            break;
+        case AOTP_PARTY_STATE_UPDATED:
+
+            break;
+        default:
+            // Traitement pour les autres types de réponses non gérées
+            printf("Réponse non gérée : %d\n", response_data.code);
+            break;
+    }
+
 }
