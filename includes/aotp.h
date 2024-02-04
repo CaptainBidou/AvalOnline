@@ -52,15 +52,18 @@ typedef enum
  */
 typedef enum
 {
-    // Code de retour du serveur d'enregistrement
+    // Code de retour
     AOTP_OK = 200, /*!< Code de retour OK */
     AOTP_CONN_OK = 201, /*!< Code de retour connexion OK */
     AOTP_PARTY_CREATED = 202, /*!< Code de retour partie creee */
     AOTP_PARTY_JOINED = 203, /*!< Code de retour partie rejointe */
     AOTP_PARTY_LIST_RETREIVED = 204, /*!< Code de retour liste des parties recuperee */
     AOTP_PARTY_STATE_UPDATED = 205, /*!< Code de retour etat de la partie mis a jour */
+    AOTP_PLAYER_STATE_UPDATED = 206, /*!< Code de retour etat du joueur mis a jour */
+    AOTP_PARTY_STARTED = 207, /*!< Code de retour partie demarree */
+    AOTP_POSITION_UPDATED = 208, /*!< Code de retour position mise a jour */
 
-
+    // Code d'erreur du serveur d'enregistrement
     AOTP_NOK = 400, /*!< Code de retour NOK */
     AOTP_STRING_OVERCHARGED = 401, /*!< Code de retour chaine de caractere surchargee */
     AOTP_ERR_CONNECT = 402, /*!< Code de retour erreur de connexion */
@@ -84,7 +87,7 @@ typedef struct
     party_state_t party_state; /*!< Etat de la partie */
     party_id_t party_id;       /*!< Identifiant de la partie */
 } aotp_request_t;              /*!< Structure de requete du protocole */
-      /*!< Structure d'une liste de parties */
+
 /**
  * \struct aotp_response
  * \brief Structure de reponse du protocole
@@ -92,12 +95,12 @@ typedef struct
 typedef struct
 {
     AOTP_RESPONSE code;      /*!< Code de retour */
-    char response_desc[100]; /*!< Description de la reponse */
     int client_id;
     list_party_t *parties;
     char host_ip[16];
     short host_port;
     position_t *position;
+    client_state_t client_state;
 } aotp_response_t; /*!< Structure de reponse du protocole */
 
 /* ------------------------------------------------------------------------ */
@@ -109,7 +112,7 @@ typedef struct
  * \brief Fonction de gestion des requetes du protocole
  * Pour chaque requete il y un traitement specifique a effectuer
  */
-int requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties);
+int requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties, position_t *position);
 
 /**
  * \fn void struct2Request(aotp_request_t *request, char *buffer);
@@ -137,7 +140,7 @@ void request2Struct(char *buffer, aotp_request_t *request);
  * \param parties Parties a retourner (optionnel)
  * \param position Position a retourner (optionnel)
  */
-void initResponse(aotp_response_t *response, AOTP_RESPONSE code, list_party_t *parties, position_t *position, int client_id);
+void initResponse(aotp_response_t *response, AOTP_RESPONSE code, list_party_t *parties, position_t *position, int client_id, client_state_t client_state);
 
 /**
  * \fn void struct2Response(aotp_response_t *response, char *buffer);
@@ -196,6 +199,6 @@ void initRequest(AOTP_REQUEST action);
  * \param parties Parties a retourner (optionnel)
  * \param position Position a retourner (optionnel)
  */
-void sendResponse(socket_t *socket, AOTP_RESPONSE code, list_party_t *parties, position_t *position, int client_id);
+void sendResponse(socket_t *socket, AOTP_RESPONSE code, list_party_t *parties, position_t *position, int client_id, client_state_t client_state);
 
 #endif

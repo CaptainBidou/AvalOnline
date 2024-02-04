@@ -143,3 +143,21 @@ void removeParty(list_party_t **list, party_t *party) {
         current = current->next;
     }
 }
+
+/**
+ * \fn void freePartyList(list_party_t **head);
+ * \brief Fonction de liberation de la memoire allouee pour une liste de parties
+ * \param head Liste de parties
+ */
+void freePartyList(list_party_t **head) {
+    list_party_t *current = *head;
+    list_party_t *next;
+    while (current != NULL) {
+        next = current->next;
+        free(current->party);
+        free(current);
+        current = next;
+    }
+    *head = NULL;
+
+}

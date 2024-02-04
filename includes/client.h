@@ -8,17 +8,18 @@
 
 #include "session.h"
 #include "time.h"
+#include "avalam.h"
 
 /**
  * \struct client_state_t
  * \brief Structure de l'etat d'un client
  */
 typedef enum {
-    CLIENT_UNKOWN = 0, /*!< Etat inconnu */
-    CLIENT_SPECTATOR,  /*!< Spectateur */
-    CLIENT_READY,      /*!< Pret */
-    CLIENT_TRAIT_RED,  /*!< Trait rouge */
-    CLIENT_TRAIT_YELLOW, /*!< Trait jaune */
+    CLIENT_UNKOWN = -2, /*!< Etat inconnu */
+    CLIENT_SPECTATOR = -1,  /*!< Spectateur */
+    CLIENT_READY = 0,      /*!< Pret */
+    CLIENT_TRAIT_YELLOW = JAU, /*!< Trait jaune */
+    CLIENT_TRAIT_RED = ROU,  /*!< Trait rouge */
 } client_state_t;      /*!< Structure de l'etat d'un client */
 
 

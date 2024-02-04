@@ -2,10 +2,75 @@
 
 party_id_t generatePartyId(list_party_t *list);
 
-void setReady(socket_t *socket, aotp_request_t *requestData, list_client_t **clients);
-
+void setReady(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, position_t *position);
 void connectClientToHost(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties);
+void playMove(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, position_t *position);
+void playEvolution(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, position_t *position);
+void sendPositionToClients(list_client_t *clients, position_t *position);
 
+
+
+void playMove(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, position_t *position) {
+    // On récupère le coup joué
+    coup_t *coup = requestData->coup;
+
+    // On récupère le client
+    client_t *client = getClientById(*clients, requestData->client_id);
+    if(client == NULL) {
+        // TODO : Renvoyer une erreur au client
+        sendResponse(socket, AOTP_ERR_CONNECT, NULL, NULL, 0, CLIENT_UNKOWN);
+    }
+    // On vérifie que le client a le trait
+    if(client->state != position->trait) {
+        // TODO : Renvoyer une erreur au client
+        sendResponse(socket, AOTP_ERR_CONNECT, NULL, NULL, 0, client->state);
+    }
+
+    // On joue le coup
+    position_t newPosition = jouerCoup(*position, coup->origine, coup->destination);
+    if(newPosition.numCoup == position->numCoup) {
+        sendResponse(socket, AOTP_ERR_CONNECT, NULL, NULL, 0, CLIENT_SPECTATOR);
+    }
+
+    // On envoie la nouvelle position à tous les clients
+    *position = newPosition;
+    sendPositionToClients(*clients, position);
+}
+
+void playEvolution(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, position_t *position) {
+    // On récupère l'évolution jouée
+    evolution_t *evolution = requestData->evolution;
+
+    // Nouvelle position (TODO : copyPosition)
+    position_t newPosition;
+    newPosition = *position;
+
+    // CHECK : On vérifie que l'évolution est valide (TODO) crée une fonction pour ça jouerCoupEvolution
+    if(position->trait == JAU && position->numCoup == 0) newPosition.evolution.bonusJ = evolution->bonusJ;
+    if(position->trait == ROU && position->numCoup == 1) newPosition.evolution.bonusR = evolution->bonusR;
+    if(position->trait == ROU && position->numCoup == 2) newPosition.evolution.malusR = evolution->malusR;
+    if(position->trait == JAU && position->numCoup == 3) newPosition.evolution.malusJ = evolution->malusJ;
+    position->numCoup++;
+
+    // On envoie la nouvelle position à tous les clients
+    *position = newPosition; // on met à jour la position
+    sendPositionToClients(*clients, position);
+    
+}
+/**
+ * \fn void sendPositionToClients(list_client_t *clients, position_t *position);
+ * \brief Fonction d'envoi de la position à tous les clients
+ * \param clients Liste des clients
+ * \param position Position à envoyer
+*/
+void sendPositionToClients(list_client_t *clients, position_t *position) {
+    list_client_t *current = clients;
+    while(current != NULL) {
+        sendResponse(current->client->socket, AOTP_POSITION_UPDATED, NULL, position, 0, current->client->state);
+        current = current->next;
+    }
+
+}
 /**
  * \fn party_t *createParty(socket, requestData);
  * \brief Fonction de création d'une partie
@@ -40,7 +105,7 @@ void connectHandler(socket_t *socket, aotp_request_t *requestData, list_client_t
     printf("Client connecté : [%d] %s\n", client->id, client->pseudo);
     // Ajout du client a la liste des clients connectes
     addClient(clients, client);
-    sendResponse(socket, AOTP_CONN_OK, NULL, NULL, client->id);
+    sendResponse(socket, AOTP_CONN_OK, NULL, NULL, client->id, client->state);
 }
 
 /**
@@ -48,8 +113,7 @@ void connectHandler(socket_t *socket, aotp_request_t *requestData, list_client_t
  * \brief Fonction de gestion des requetes du protocole
  * Pour chaque requete il y un traitement specifique a effectuer
  */
-int requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties)
-{
+int requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, list_party_t **parties, position_t *position) {
     AOTP_REQUEST action = requestData->action;
     switch (action)
     {
@@ -61,7 +125,7 @@ int requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t 
     case AOTP_DISCONNECT:
         // supprime le client de la liste
         removeClient(clients, requestData->client_id);
-        sendResponse(socket, AOTP_OK, NULL, NULL, 0);
+        sendResponse(socket, AOTP_OK, NULL, NULL, 0, CLIENT_UNKOWN);
         return 0;
         break;
 
@@ -73,7 +137,7 @@ int requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t 
         // envoie la reponse au client
         list_party_t *playerParty = NULL;
         addParty(&playerParty, party);
-        sendResponse(socket, AOTP_PARTY_CREATED, playerParty, NULL, 0);
+        sendResponse(socket, AOTP_PARTY_CREATED, playerParty, NULL, 0, CLIENT_SPECTATOR);
         removeParty(&playerParty, party);
         break;
     case AOTP_LIST_PARTIES:
@@ -90,7 +154,18 @@ int requestHandler(socket_t *socket, aotp_request_t *requestData, list_client_t 
 
     case AOTP_SET_READY:
         // Change l'etat du client en prêt, et lance la partie si tous les clients sont prêts
-        setReady(socket, requestData, clients);
+        setReady(socket, requestData, clients, position);
+        break;
+
+
+    case AOTP_SEND_EVOLUTION:
+        // TODO : Envoie l'evolution et met a jour la position à tous les clients
+        playEvolution(socket, requestData, clients, position);
+        break;
+
+    case AOTP_SEND_MOVE:
+        // TODO : Envoie le coup et met a jour la position à tous les clients
+        playMove(socket, requestData, clients, position);
         break;
 
     default:
@@ -249,12 +324,13 @@ void stringToEvolution(char *buffer, evolution_t *evolution)
  * \param parties Parties a retourner (optionnel)
  * \param position Position a retourner (optionnel)
  */
-void initResponse(aotp_response_t *response, AOTP_RESPONSE code, list_party_t *parties, position_t *position, int client_id)
+void initResponse(aotp_response_t *response, AOTP_RESPONSE code, list_party_t *parties, position_t *position, int client_id, client_state_t client_state)
 {
     response->code = code;
     response->parties = parties;
     response->position = position;
     response->client_id = client_id;
+    response->client_state = client_state;
 }
 
 /**
@@ -266,7 +342,7 @@ void initResponse(aotp_response_t *response, AOTP_RESPONSE code, list_party_t *p
 void struct2Response(aotp_response_t *response, char *buffer)
 {
     // On commence par écrire le header de la requête
-    sprintf(buffer, "%d %d\r\n", response->code, response->client_id);
+    sprintf(buffer, "%d %d %d\r\n", response->code, response->client_id, response->client_state);
     
     // Ecriture de la ligne vide
     sprintf(buffer, "%sPARTIES\r\n", buffer);
@@ -289,7 +365,7 @@ void struct2Response(aotp_response_t *response, char *buffer)
     sprintf(buffer, "%sPOSITION\r\n", buffer);
     position_t *position = response->position;
     if(position != NULL) {
-        sprintf(buffer, "%s%d %d\r\n", buffer, position->trait, position->numCoup);
+        sprintf(buffer, "%s%d %d %d %d\r\n", buffer, position->evolution.bonusJ, position->evolution.malusJ, position->evolution.bonusR, position->evolution.malusR);
         // Ecriture des colonnes
         for (int i = 0; i < NBCASES; i++) sprintf(buffer, "%s%d %d\r\n", buffer, position->cols[i].nb, position->cols[i].couleur);
     }
@@ -312,10 +388,12 @@ void response2Struct(char *buffer, aotp_response_t *response) {
     strcpy(bufferCopy, buffer);
     response->parties = NULL;
     response->position = NULL;
+    response->client_id = 0;
+    response->client_state = CLIENT_UNKOWN;
 
     // Recuperation du header
     char *header = strtok_r(bufferCopy, "\r\n", &saveptr);
-    sscanf(header, "%d %d", (int *)&response->code, &response->client_id);
+    sscanf(header, "%d %d %d", (int *)&response->code, &response->client_id, (int *)&response->client_state);
     // Traitement des paramètres optionnels
 
     // Traitement des parties
@@ -323,12 +401,15 @@ void response2Struct(char *buffer, aotp_response_t *response) {
     if(body == NULL) return;
 
     // Si la ligne est "PARTIES", on traite les parties
-    if (strcmp(body, "PARTIES") == 0) {
+    if (strncmp(body, "PARTIES", strlen("PARTIES")) == 0) {
         // On passe à la ligne suivante
         body = strtok_r(NULL, "\r\n", &saveptr);
         while (body != NULL) {
             // Si la ligne est "FIN_PARTIES", on a fini de traiter les parties
-            if (strcmp(body, "FIN_PARTIES") == 0) break;
+            if (strncmp(body, "FIN_PARTIES", strlen("FIN_PARTIES")) == 0) {
+                body = strtok_r(NULL, "\r\n", &saveptr);
+                break;
+            }
 
             // Conversion de la chaine de caractères en partie
             party_t *party = malloc(sizeof(party_t));
@@ -340,13 +421,21 @@ void response2Struct(char *buffer, aotp_response_t *response) {
             body = strtok_r(NULL, "\r\n", &saveptr);
         }
     }
+    printf("WTF : %s\n", body);
     // Si la ligne est "POSITION", on traite la position
-    if (strcmp(body, "POSITION") == 0) {
+    if (body != NULL && strncmp(body, "POSITION", strlen("POSITION")) == 0) {
+        printf("Traitement de la position\n");
         // On passe à la ligne suivante
         body = strtok_r(NULL, "\r\n", &saveptr);
+
+        // Si on trouve la ligne "FIN_POSITION", on a fini de traiter la position
+        if (strncmp(body, "FIN_POSITION", strlen("FIN_POSITION")) == 0) {
+            return;
+        }
         // Conversion de la chaine de caractères en position
         position_t *position = malloc(sizeof(position_t));
-        sscanf(body, "%hhd %hhd", &position->trait, &position->numCoup);
+
+        sscanf(body, "%hhd %hhd %hhd %hhd %hhd %hhd", &position->trait, &position->numCoup, &position->evolution.bonusJ, &position->evolution.malusJ, &position->evolution.bonusR, &position->evolution.malusR);
         // Traitement des colonnes
         for (int i = 0; i < NBCASES; i++) {
             body = strtok_r(NULL, "\r\n", &saveptr);
@@ -393,13 +482,13 @@ void connectClientToHost(socket_t *socket, aotp_request_t *requestData, list_cli
     addClient(clients, client);
     // On recupere la partie
     if(*parties == NULL) {
-        sendResponse(socket, AOTP_ERR_CONNECT, NULL, NULL, 0);
+        sendResponse(socket, AOTP_ERR_CONNECT, NULL, NULL, 0, CLIENT_SPECTATOR);
         return;
     }
     // On recupere la partie
     list_party_t *party = *parties;
     // On envoie une réponse au client
-    sendResponse(socket, AOTP_PARTY_JOINED, party, NULL, 0);
+    sendResponse(socket, AOTP_PARTY_JOINED, party, NULL, 0, CLIENT_SPECTATOR);
 }
 
 
@@ -431,29 +520,54 @@ void listPartiesRep(socket_t *socket, aotp_request_t *requestData, list_client_t
     // on verifie que le client existe 
     client_t *client = getClientById(*clients, requestData->client_id);
     if(client == NULL) {
-        sendResponse(socket, AOTP_ERR_CONNECT, NULL, NULL, 0);
+        sendResponse(socket, AOTP_ERR_CONNECT, NULL, NULL, 0, CLIENT_UNKOWN);
         return;
     }
     // Envoie de la liste des parties
-    sendResponse(socket, AOTP_PARTY_LIST_RETREIVED, *parties, NULL, 0);
+    sendResponse(socket, AOTP_PARTY_LIST_RETREIVED, *parties, NULL, 0, CLIENT_UNKOWN);
 }
 
-void setReady(socket_t *socket, aotp_request_t *requestData, list_client_t **clients) {
+void setReady(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, position_t *position) {
     // On recupere le client
     client_t *client = getClientById(*clients, requestData->client_id);
     if(client == NULL) {
         // TODO : Renvoyer une erreur au client
+        sendResponse(socket, AOTP_ERR_CONNECT, NULL, NULL, 0, CLIENT_SPECTATOR);
     }
     // On change l'etat du client
     client->state = CLIENT_READY;
 
     // On envoie la reponse au client
-    sendResponse(socket, AOTP_PARTY_STATE_UPDATED, NULL, NULL,0);
+    sendResponse(socket, AOTP_PLAYER_STATE_UPDATED, NULL, NULL, 0, client->state);
+
+    // On verifie que 2 joueurs sont prêts :
+    if(is2PlayersReady(*clients)) {
+        // On recupere les deux joueurs
+        list_client_t *current = *clients;
+        client_t *player1 = NULL;
+        client_t *player2 = NULL;
+        while(current != NULL) {
+            if(current->client->state == CLIENT_READY) {
+                if(player1 == NULL) player1 = current->client;
+                else player2 = current->client;
+            }
+            current = current->next;
+        }
+        // On envoie une reponse aux deux joueurs
+        // On change l'etat des joueurs pour leur donner le trait
+        player1->state = CLIENT_TRAIT_RED;
+        player2->state = CLIENT_TRAIT_YELLOW;
+
+        // On envoie une réponse à chaque client pour leur donner leur trait et leur informer que la partie commence
+        current = *clients;
+        while(current != NULL) {
+            sendResponse(current->client->socket, AOTP_PARTY_STARTED, NULL, position, client->id, current->client->state);
+            current = current->next;
+        }
+
+    }
 
 }
-
-
-
 
 /**
  * \fn void sendResponse(AOTP_RESPONSE code, list_party_t *parties, position_t *position);
@@ -462,11 +576,10 @@ void setReady(socket_t *socket, aotp_request_t *requestData, list_client_t **cli
  * \param parties Parties a retourner (optionnel)
  * \param position Position a retourner (optionnel)
  */
-void sendResponse(socket_t *socket, AOTP_RESPONSE code, list_party_t *parties, position_t *position, int client_id) {
-    // Creation de la reponse de connexion
+void sendResponse(socket_t *socket, AOTP_RESPONSE code, list_party_t *parties, position_t *position, int client_id, client_state_t client_state) {    // Creation de la reponse de connexion
     aotp_response_t response;
     // On remplit la réponse
-    initResponse(&response, code, parties, position, client_id);
+    initResponse(&response, code, parties, position, client_id, client_state);
     // Envoi de la reponse
     send_data(socket, &response, (serialize_t) struct2Response);
 }

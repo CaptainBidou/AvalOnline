@@ -89,11 +89,8 @@ void removeClient(list_client_t **head, int client_id) {
 int generateClientId() {
     // On recupere le timestamp actuel
     time_t timestamp = time(NULL);
-    // On recupere l'identifiant du processus
-    int pid = getpid();
-
     // On concatene les deux valeurs
-    int id = timestamp + pid;
+    int id = timestamp;
 
     return id;
 }

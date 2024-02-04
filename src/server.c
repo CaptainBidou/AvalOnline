@@ -25,7 +25,7 @@ void *handleClient(void *arg) {
     // Reception de la requete
     while(stillConnected) {
         recv_data(sd, request, (serialize_t) request2Struct);
-        stillConnected = requestHandler(sd, request, &clients, &parties);
+        stillConnected = requestHandler(sd, request, &clients, &parties, NULL);
     }
     // Fermeture de la socket
     

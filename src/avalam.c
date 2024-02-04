@@ -2,6 +2,8 @@
 #include "avalam.h"
 #include "topologie.h"
 
+#include "unistd.h"
+
 extern voisins_t topologie[NBCASES]; 
 position_t positionInitiale; 
 
@@ -117,7 +119,6 @@ char estValide(position_t p, char origine, char destination) {
 	return FAUX;
 }
 
-
 position_t jouerCoup(position_t p, char origine, char destination) {
 	if (!estValide(p,origine,destination)) return p;
 
@@ -176,8 +177,35 @@ void afficherScore(score_t s) {
 	printf("J: %d (%d piles de 5) - R : %d (%d piles de 5)\n", s.nbJ, s.nbJ5, s.nbR, s.nbR5);
 }
 
-void placerEvolutionPionParPion(char numCase,char destination){
-	destination = numCase;
-	return ;
+/**
+ * \fn void writePosition(position_t p)
+ * \brief Ecrit la position p dans le fichier json web/avalonline.json
+*/
+int writePosition(position_t p) {
+	FILE *fic=NULL; // Pointeur de notre fichier
+	char tmpname[100]; // Nom temporaire du fichier car les clients écrivent tous dans le même fichier en local
+	sprintf(tmpname,"web/js/avalonline_%d.js",getpid());
+	fic=fopen(tmpname,"w"); // Ouverture du fichier en écriture
+	score_t s = evaluerScore(p);
 
+	if (fic==NULL) return 0;
+	
+	fprintf(fic,"traiterJson({\n %s:%d,\n %s:%d,\n %s:%d,\n %s:%d,\n %s:%d,\n %s:%d,\n %s:%d,\n %s:%d,\n %s:%d,\n %s:[",
+		STR_TURN,p.trait,
+		STR_SCORE_J,s.nbJ,
+		STR_SCORE_J5,s.nbJ5,
+		STR_SCORE_R,s.nbR,
+		STR_SCORE_R5,s.nbR5,
+		STR_BONUS_J,p.evolution.bonusJ,
+		STR_BONUS_R,p.evolution.bonusR,
+		STR_MALUS_R,p.evolution.malusR,
+		STR_MALUS_J,p.evolution.malusJ,
+		STR_COLS
+	);
+
+	fprintf(fic,"{%s:%d, %s:%d,}",STR_NB,p.cols[0].nb,STR_COULEUR,p.cols[0].couleur);
+	for (int i=1;i<NBCASES;i++) fprintf(fic,",\n\t{%s:%d, %s:%d,}",STR_NB,p.cols[i].nb,STR_COULEUR,p.cols[i].couleur);
+	fprintf(fic,"]});");
+	fclose(fic);
+	return 1;
 }

@@ -11,14 +11,18 @@
 #define GREEN 32
 #define BLUE 34
 
+// Variable globale
 
-
-list_party_t *parties = NULL; // Liste des parties en cours
+///  Variable en tant que host
 party_t *myParty = NULL; // Informations de la partie de l'utilisateur
-
 list_client_t *players = NULL; // Liste des joueurs connectés
+position_t hostPosition;
+
+/// Variable en tant que client
+list_party_t *parties = NULL; // Liste des parties en cours
 client_t *client = NULL; // Informations du client
-aotp_response_t createPartyReq(socket_t *socket, char *hostIp, short hostPort);
+position_t position; // Position actuelle du client
+
 
 // Fonctions propre à l'interface
 void clearBuffer();
@@ -29,21 +33,27 @@ void afficherParties();
 void promptHostIpPort(char *hostIp, short *hostPort);
 void playGame(client_t *client, party_state_t state);
 void exitFunction(); // Fonction de sortie
-void handleResponse(aotp_response_t response_data);
+int handleResponse(aotp_response_t response_data);
+void gameLoop(client_t *client, client_state_t state);
+evolution_t promptEvolution(int numCoup);
+aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t evolution);
+
 // Thread du serveur d'hébergement
 void host(char *hostIp, short hostPort);
 
 // Requete vers le serveur d'enregistrement
+aotp_response_t createPartyReq(socket_t *socket, char *hostIp, short hostPort);
 aotp_response_t requestJoinParty(client_t *client, party_id_t partyId);
 aotp_response_t listPartyReq(socket_t *socket);
 aotp_response_t connReq(socket_t *socket, char *pseudo);
 
 // Requete vers le serveur de jeu
 aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char destination);
-aotp_response_t jouerEvolutionReq(client_t *client, position_t p, char origine, char destination);
+aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t evolution);
 
 //serveur de jeu 
 void jouerPartyHost(socket_t * jaune,socket_t* rouge );
+aotp_response_t requestReady(client_t *client);
 
 socket_t *host_se, *host_sd; // Socket d'écoute et socket de dialogue
 
@@ -52,6 +62,8 @@ int main(int argc, char *argv[]) {
     char *serverAddress;
     short serverPort;
     client = initClient(-1, "", CLIENT_UNKOWN, NULL);
+    hostPosition = getPositionInitiale();
+    position = getPositionInitiale();
     aotp_response_t response;
 
     // Récupération des arguments
@@ -97,7 +109,8 @@ int main(int argc, char *argv[]) {
                 party_id_t numPartie;
                 scanf("%d", &numPartie);
                 clearBuffer();
-                requestJoinParty(client, numPartie);
+                handleResponse(requestJoinParty(client, numPartie));
+
             break;
 
             case '3':
@@ -254,11 +267,11 @@ void *handleClient(void *arg) {
     char *buffer = malloc(sizeof(buffer_t));
     int stillConnected = 1;
     list_party_t *hostParty = NULL;
-    addParty(&parties, myParty); // Ajout de la partie de l'hôte à la liste pour l'handler
+    addParty(&hostParty, myParty); // Ajout de la partie de l'hôte à la liste pour l'handler
     // Reception de la requete
     while(stillConnected) {
         recv_data(sd, request, (serialize_t) request2Struct);
-        stillConnected = requestHandler(sd, request, &players, &hostParty);
+        stillConnected = requestHandler(sd, request, &players, &hostParty, &hostPosition);
     }
     removeParty(&hostParty, myParty); // Suppression et libération de la mémoire de la liste créée pour l'handler
 
@@ -268,9 +281,9 @@ void *handleClient(void *arg) {
 }
 
 void host(char *hostIp, short hostPort) {
-
     host_se = createListeningSocket(hostIp, hostPort, DEFAULT_AOTP_MAX_CLIENTS);
-
+    hostPosition = getPositionInitiale();
+    
     while(1) {
         host_sd = acceptClient(host_se);
         pthread_t thread; 
@@ -283,52 +296,38 @@ void host(char *hostIp, short hostPort) {
 }
 
 aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char destination){
-    p = jouerCoup(p,origine,destination);
-
-    // Création de la socket
-    socket_t *socket = client->socket;
     // Envoi de la requête de connexion
     aotp_request_t *request = createRequest(AOTP_SEND_MOVE);
     request->client_id = client->id;
-    request->coup->destination = destination;
     request->coup->origine = origine;
-    send_data(socket, request, (serialize_t) struct2Request);
+    request->coup->destination = destination;
+    send_data(client->socket, request, (serialize_t) struct2Request);
 
     // Réception de la réponse
     aotp_response_t response;
-    recv_data(socket, &response, (serialize_t) response2Struct);
+    recv_data(client->socket, &response, (serialize_t) response2Struct);
 
     // Libération de la mémoire
     free(request);
+
     return response;
-    
 }
 
-aotp_response_t jouerEvolutionReq(client_t *client, position_t p, char origine, char destination){
-
-    p = jouerCoup(p,origine,destination);
-    // Création de la socket
-    socket_t *socket = client->socket;
-
+aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t evolution) {
     // Envoi de la requête de connexion
-    aotp_request_t *request = createRequest(AOTP_SEND_MOVE);
+    aotp_request_t *request = createRequest(AOTP_SEND_EVOLUTION);
     request->client_id = client->id;
-    request->coup->destination = destination;
-    request->coup->origine = origine;
-    send_data(socket, request, (serialize_t) struct2Request);
+    request->evolution = &evolution;
+    send_data(client->socket, request, (serialize_t) struct2Request);
 
     // Réception de la réponse
     aotp_response_t response;
-    recv_data(socket, &response, (serialize_t) response2Struct);
-
-    // Vérification de la réponse
-    // TODO : Remplacer par un handler de réponse
+    recv_data(client->socket, &response, (serialize_t) response2Struct);
 
     // Libération de la mémoire
     free(request);
 
     return response;
-    
 }
 
 aotp_response_t requestJoinParty(client_t *client, party_id_t partyId) {
@@ -363,23 +362,17 @@ aotp_response_t requestJoinParty(client_t *client, party_id_t partyId) {
  * Si l'état est WAITING, on demande au client s'il est prêt
  * Si l'état est PLAYING, le client est spectateur et se mets dans une boucle d'attente de la position
 */
-void playGame(client_t *client, party_state_t state) {
+void joinGame(client_t *client, party_state_t state) {
     system("clear");
     switch (state) {
-        case PARTY_PLAYING:
-            COULEUR(RED);
-            printf("La partie est en cours ! Vous êtes spectateur\n");
-            // TODO : Spectateur à mettre dans une fonction
-            position_t *position = malloc(sizeof(position_t));
-            *position = getPositionInitiale();
-            while(getCoupsLegaux(*position).nb > 0) {
-                // On attend la position du serveur d'hébergement
-            }
+        case PARTY_PLAYING: // Si la partie est en cours forcement le client est spectateur
+            // Si la partie est en cours, le client est spectateur et donc recevra la position
+            gameLoop(client, CLIENT_SPECTATOR);
             break;
-        
-        case PARTY_WAITING:
+
+        case PARTY_WAITING: // Si la partie est en attente de joueurs 
             COULEUR(RED);
-            printf("La partie est en attente de joueurs, êtes-vous prêt ? (o/n)\n");
+            printf("\tLa partie est en attente de joueurs, êtes-vous prêt ? (o/n)\n");
             COLOR_RESET;
             COULEUR(GREEN);
             char choix;
@@ -387,18 +380,19 @@ void playGame(client_t *client, party_state_t state) {
             clearBuffer();
             COLOR_RESET;
             if(choix == 'o') {
-                // TODO : Prêt
+                handleResponse(requestReady(client));
             }
-            // Mode spectateur 
+            // On attend la réponse PARTY_STARTED
+            aotp_response_t response;
+            recv_data(client->socket, &response, (serialize_t) response2Struct);
+            handleResponse(response);
             break;
         
         case PARTY_FINISHED:
             COULEUR(RED);
             printf("La partie est terminée !\n");
             COLOR_RESET;
-
             break;
-        
     }
 }
 
@@ -424,39 +418,72 @@ void exitFunction() {
 }
 
 
-void handleResponse(aotp_response_t response_data) {
+int handleResponse(aotp_response_t response_data) {
+    printf("Code de la réponse : %d\n", response_data.code);
     switch (response_data.code) {
         case AOTP_OK:
             // Traitement pour les réponses OK
-            break;
+            return 1;
 
         case AOTP_CONN_OK:
             client->id = response_data.client_id;
-            break;
+            return 1;
 
         case AOTP_PARTY_CREATED:
             myParty = response_data.parties->party;
+            client->state = response_data.client_state;
             // TODO : remplacer par un thread pour que l'host puisse continuer à jouer
             host(myParty->host_ip, myParty->host_port);
-            break;
+            return 1;
         case AOTP_PARTY_JOINED:
-            playGame(client, response_data.parties->party->state);
-        break;
+            // On change l'état du client
+            client->state = response_data.client_state;
+            joinGame(client, response_data.parties->party->state);
+            return 1;
         
         case AOTP_PARTY_LIST_RETREIVED:
             if(parties != NULL) {
                 // TODO : Libérer la mémoire de la liste des parties
             }
             parties = response_data.parties;
-            break;
-        case AOTP_PARTY_STATE_UPDATED:
+            return 1;
 
-            break;
+        case AOTP_PARTY_STATE_UPDATED:
+            return 1;
+
+        case AOTP_PLAYER_STATE_UPDATED:
+            // On change l'état du client
+            client->state = response_data.client_state;
+            COULEUR(RED);
+            printf("Vous êtes prêt !\n");
+            COLOR_RESET;
+            return 1;
+
+        case AOTP_PARTY_STARTED:
+            //client->state = response_data.client_state;
+            // On récupère l'état du joueur
+            client_state_t state;
+            // On récupère la position
+            position = *(response_data.position);
+            afficherPosition(position);
+            // Ecriture de la position dans le fichier json
+            writePosition(position);
+            gameLoop(client, state);
+            return 1;
+
+            case AOTP_POSITION_UPDATED:
+                // TODO : Mettre à jour la position
+                writePosition(*(response_data.position));
+                position = *(response_data.position);
+                free(response_data.position);
+                return 1;
         default:
             // Traitement pour les autres types de réponses non gérées
             printf("Réponse non gérée : %d\n", response_data.code);
             break;
     }
+
+    return 0;
 
 }
 /**
@@ -466,73 +493,102 @@ void handleResponse(aotp_response_t response_data) {
  * \param rouge Socket du joueur rouge
 */
 void jouerPartyHost(socket_t * jaune,socket_t* rouge ) {
-    // pas oublier : les jaunes ont le trait en premier
-    char numCase;
-    position_t p;
-    coup_t coup;
-    score_t s;
 
-    //TODO : Req pour dire au jaune qu'il choisis son evolution bonus 
-    //char numCase = getJoueurBonus(jaune);
-    placerEvolutionPionParPion(numCase,p.evolution.bonusJ);
-    //TODO : req pour envoyer la position au jaune 
-    //send_position(jaune,p);
-    //TODO : req pour envoyer la position au rouge
-    //send_position(rouge,p);
+}
 
-    //TODO : Req pour dire au rouge qu'il choisis son evolution malus
-    //numCase = getJoueurMalus(rouge);
-    placerEvolutionPionParPion(numCase,p.evolution.malusR);
-    //TODO : req pour envoyer la position au jaune 
-    //send_position(jaune,p);
-    //TODO : req pour envoyer la position au rouge
-    //send_position(rouge,p);
+aotp_response_t requestReady(client_t *client) {
+    // Envoi de la requête de connexion
+    aotp_request_t *request = createRequest(AOTP_SET_READY);
+    request->client_id = client->id;
+    send_data(client->socket, request, (serialize_t) struct2Request);
 
- 
-    //TODO : req pour dire au jaune qu'il choisis son evolution malus
-    //numCase = getJoueurMalus(jaune);
-    placerEvolutionPionParPion(numCase,p.evolution.malusJ);
-    //TODO : req pour envoyer la position au jaune 
-    //send_position(jaune,p);
-    //TODO : req pour envoyer la position au rouge
-    //send_position(rouge,p);
-
-    //TODO : req pour dire au rouge qu'il choisis son evolution bonus
-    //numCase = getJoueurBonus(rouge);
-    placerEvolutionPionParPion(numCase,p.evolution.bonusR);
-    //TODO : req pour envoyer la position au jaune 
-    //send_position(jaune,p);
-    //TODO : req pour envoyer la position au rouge
-    //send_position(rouge,p);
-
-    while(getCoupsLegaux(p).nb > 0){
-
-        //TODO : req pour dire au jaune de jouer son coup
-        //coup = send_trait(jaune);
-        p= jouerCoup(p,coup.origine,coup.destination);
-
-        //TODO : req pour envoyer la position au jaune
-        //send_position(jaune,p);
-        //TODO : req pour envoyer la position au rouge
-        //send_position(rouge,p);
-
-        //TODO : req pour dire au rouge de jouer son coup
-        //coup=send_trait(rouge);
-        p= jouerCoup(p,coup.origine,coup.destination);
-
-        //TODO : req pour envoyer la position au jaune
-        //send_position(jaune,p);
-        //TODO : req pour envoyer la position au rouge
-        //send_position(rouge,p);
-
-        //on imagine que l'évaluation du score est faite par les clients à chaque étape
-    }
-    //Partie terminée
+    // Réception de la réponse
+    aotp_response_t response;
+    recv_data(client->socket, &response, (serialize_t) response2Struct);
     
-    //TODO : req pour prévenenir le rouge que la partie est terminée
-    //send_fin(rouge);
-    //TODO : req pour prévenenir le jaune que la partie est terminée 
-    //send_fin(jaune);
+    free(request);
+    return response;
+}
+
+void gameLoop(client_t *client, client_state_t state) {
+    // TODO : Boucle de jeu
+    COULEUR(RED);
+    switch (state) {
+        case CLIENT_TRAIT_RED:
+            printf("Vous êtes ROUGE\n");
+            break;
+        case CLIENT_TRAIT_YELLOW:
+            printf("Vous êtes JAUNE\n");
+            break;
+        case CLIENT_SPECTATOR:
+            printf("Vous êtes SPECTATEUR\n");
+            break;
+        default:
+            break;
+    }
+    COLOR_RESET;
+    COULEUR(BLUE);
+    printf("Pour suivre la partie, veuillez ouvrir la page suivante : \n");
+    printf("web/avalam.html\n");
+    aotp_response_t response;
+    int successResponse = 0;
+    while(1) {
+        successResponse = handleResponse(response);
+        if(client->state == position.trait) {
+            char origine, destination;
+            // TODO : Demander le coup au joueur
+            if(position.numCoup <= 3) {
+                evolution_t evolution = promptEvolution(position.numCoup);
+                response = jouerEvolutionReq(client, position, evolution);
+            }
+            else {
+                COULEUR(RED);
+                printf("Veuillez entrer le numéro de la case d'origine : ");
+                COLOR_RESET;
+                COULEUR(GREEN);
+                scanf("%c", &origine);
+                clearBuffer();
+                COULEUR(RED);
+                printf("Veuillez entrer le numéro de la case de destination : ");
+                COLOR_RESET;
+                COULEUR(GREEN);
+                scanf("%c", &destination);
+                clearBuffer();
+                COLOR_RESET;
+                aotp_response_t response = jouerCoupReq(client, position, origine, destination);
+            }
+        }else {
+            recv_data(client->socket, &response, (serialize_t) response2Struct);
+        }
+    }
+}
 
 
+
+evolution_t promptEvolution(int numCoup) {
+    evolution_t evolution = {0, 0, 0, 0};
+    COULEUR(RED);
+    switch (numCoup) {
+        case 0:
+            printf("Veuillez choisir le bonus jaune : ");
+            scanf("%c", &position.evolution.bonusJ);
+        break;
+
+        case 1:
+            printf("Veuillez choisir le bonus rouge : ");
+            scanf("%c", &position.evolution.malusJ);
+        break;
+
+        case 2:
+            printf("Veuillez choisir le malus rouge : ");
+            scanf("%c", &position.evolution.bonusR);
+        break;
+
+        case 3:
+            printf("Veuillez choisir le malus jaune : ");
+            scanf("%c", &position.evolution.malusR);
+        break;
+    }
+    COLOR_RESET;
+    return evolution;
 }

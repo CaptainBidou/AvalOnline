@@ -1,6 +1,8 @@
 /**
  * \file avalam.h
  * \brief Fichier d'en-tête de la bibliothèque avalam
+ * \author Bourdheaud'hui Tomas
+ * \note Modifié par Lukas, Tomas, Arthur
  * 
  * La bibliothèque avalam contient les fonctions de manipulation des positions, des coups et des scores.
 */
@@ -261,12 +263,12 @@ void afficherScore(score_t s);
 
 
 /**
- * \fn placerEvolutionPionParPion(char numCase,char destination)
- * \brief place un pion evolution sur une case
- * \param numCase numéro de la case
- * \param destination bonus ou malus rouge ou jaune 
+ * \fn int writePosition(position_t p)
+ * \brief Ecrit la position p dans un fichier web/avalonline.json
+ * \param p position à écrire
+ * \return 0 si l'écriture s'est bien passée, -1 sinon
 */
-void placerEvolutionPionParPion(char numCase,char destination);
+int writePosition(position_t p);
 
 #endif
 
