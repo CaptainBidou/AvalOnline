@@ -42,6 +42,9 @@ aotp_response_t connReq(socket_t *socket, char *pseudo);
 aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char destination);
 aotp_response_t jouerEvolutionReq(client_t *client, position_t p, char origine, char destination);
 
+//serveur de jeu 
+void jouerPartyHost(socket_t * jaune,socket_t* rouge );
+
 socket_t *host_se, *host_sd; // Socket d'écoute et socket de dialogue
 
 int main(int argc, char *argv[]) {
@@ -454,5 +457,82 @@ void handleResponse(aotp_response_t response_data) {
             printf("Réponse non gérée : %d\n", response_data.code);
             break;
     }
+
+}
+/**
+ * \fn jouerPartyHost(socket_t * jaune,socket_t* rouge )
+ * \brief joue une partie en tant qu'hôte
+ * \param jaune Socket du joueur jaune
+ * \param rouge Socket du joueur rouge
+*/
+void jouerPartyHost(socket_t * jaune,socket_t* rouge ) {
+    // pas oublier : les jaunes ont le trait en premier
+    char numCase;
+    position_t p;
+    coup_t coup;
+    score_t s;
+
+    //TODO : Req pour dire au jaune qu'il choisis son evolution bonus 
+    //char numCase = getJoueurBonus(jaune);
+    placerEvolutionPionParPion(numCase,p.evolution.bonusJ);
+    //TODO : req pour envoyer la position au jaune 
+    //send_position(jaune,p);
+    //TODO : req pour envoyer la position au rouge
+    //send_position(rouge,p);
+
+    //TODO : Req pour dire au rouge qu'il choisis son evolution malus
+    //numCase = getJoueurMalus(rouge);
+    placerEvolutionPionParPion(numCase,p.evolution.malusR);
+    //TODO : req pour envoyer la position au jaune 
+    //send_position(jaune,p);
+    //TODO : req pour envoyer la position au rouge
+    //send_position(rouge,p);
+
+ 
+    //TODO : req pour dire au jaune qu'il choisis son evolution malus
+    //numCase = getJoueurMalus(jaune);
+    placerEvolutionPionParPion(numCase,p.evolution.malusJ);
+    //TODO : req pour envoyer la position au jaune 
+    //send_position(jaune,p);
+    //TODO : req pour envoyer la position au rouge
+    //send_position(rouge,p);
+
+    //TODO : req pour dire au rouge qu'il choisis son evolution bonus
+    //numCase = getJoueurBonus(rouge);
+    placerEvolutionPionParPion(numCase,p.evolution.bonusR);
+    //TODO : req pour envoyer la position au jaune 
+    //send_position(jaune,p);
+    //TODO : req pour envoyer la position au rouge
+    //send_position(rouge,p);
+
+    while(getCoupsLegaux(p).nb > 0){
+
+        //TODO : req pour dire au jaune de jouer son coup
+        //coup = send_trait(jaune);
+        p= jouerCoup(p,coup.origine,coup.destination);
+
+        //TODO : req pour envoyer la position au jaune
+        //send_position(jaune,p);
+        //TODO : req pour envoyer la position au rouge
+        //send_position(rouge,p);
+
+        //TODO : req pour dire au rouge de jouer son coup
+        //coup=send_trait(rouge);
+        p= jouerCoup(p,coup.origine,coup.destination);
+
+        //TODO : req pour envoyer la position au jaune
+        //send_position(jaune,p);
+        //TODO : req pour envoyer la position au rouge
+        //send_position(rouge,p);
+
+        //on imagine que l'évaluation du score est faite par les clients à chaque étape
+    }
+    //Partie terminée
+    
+    //TODO : req pour prévenenir le rouge que la partie est terminée
+    //send_fin(rouge);
+    //TODO : req pour prévenenir le jaune que la partie est terminée 
+    //send_fin(jaune);
+
 
 }
