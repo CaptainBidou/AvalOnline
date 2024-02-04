@@ -365,7 +365,7 @@ void struct2Response(aotp_response_t *response, char *buffer)
     sprintf(buffer, "%sPOSITION\r\n", buffer);
     position_t *position = response->position;
     if(position != NULL) {
-        sprintf(buffer, "%s%d %d %d %d\r\n", buffer, position->evolution.bonusJ, position->evolution.malusJ, position->evolution.bonusR, position->evolution.malusR);
+        sprintf(buffer, "%s%d %d %d %d %d %d\r\n", buffer, position->trait, position->numCoup, position->evolution.bonusJ, position->evolution.malusJ, position->evolution.bonusR, position->evolution.malusR);
         // Ecriture des colonnes
         for (int i = 0; i < NBCASES; i++) sprintf(buffer, "%s%d %d\r\n", buffer, position->cols[i].nb, position->cols[i].couleur);
     }

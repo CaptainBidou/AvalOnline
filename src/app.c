@@ -367,7 +367,7 @@ void joinGame(client_t *client, party_state_t state) {
     switch (state) {
         case PARTY_PLAYING: // Si la partie est en cours forcement le client est spectateur
             // Si la partie est en cours, le client est spectateur et donc recevra la position
-            gameLoop(client, CLIENT_SPECTATOR);
+            gameLoop(client, client->state);
             break;
 
         case PARTY_WAITING: // Si la partie est en attente de joueurs 
@@ -462,7 +462,7 @@ int handleResponse(aotp_response_t response_data) {
         case AOTP_PARTY_STARTED:
             //client->state = response_data.client_state;
             // On récupère l'état du joueur
-            client_state_t state;
+            client_state_t state = response_data.client_state;
             // On récupère la position
             position = *(response_data.position);
             afficherPosition(position);
@@ -530,13 +530,13 @@ void gameLoop(client_t *client, client_state_t state) {
     COULEUR(BLUE);
     printf("Pour suivre la partie, veuillez ouvrir la page suivante : \n");
     printf("web/avalam.html\n");
+    printf("[DEBUG] selectionner le fichier web/js/avalonline-%d.js\n", getpid());
     aotp_response_t response;
     int successResponse = 0;
     while(1) {
-        successResponse = handleResponse(response);
-        if(client->state == position.trait) {
+        printf("[DEBUG] Trait : %d State : %d\n", position.trait, state);
+        if(state == position.trait) {
             char origine, destination;
-            // TODO : Demander le coup au joueur
             if(position.numCoup <= 3) {
                 evolution_t evolution = promptEvolution(position.numCoup);
                 response = jouerEvolutionReq(client, position, evolution);
@@ -560,6 +560,8 @@ void gameLoop(client_t *client, client_state_t state) {
         }else {
             recv_data(client->socket, &response, (serialize_t) response2Struct);
         }
+
+        successResponse = handleResponse(response);
     }
 }
 

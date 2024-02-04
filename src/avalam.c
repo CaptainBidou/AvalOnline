@@ -127,6 +127,7 @@ position_t jouerCoup(position_t p, char origine, char destination) {
 	p.cols[destination].couleur = p.cols[origine].couleur; 
 	p.cols[origine].nb = VIDE; 
 	p.cols[origine].couleur = VIDE; 
+	p.numCoup++;
 	
 	// Il faut mettre à jour les pions évolution
 	if (p.evolution.bonusR == origine) p.evolution.bonusR=destination;
