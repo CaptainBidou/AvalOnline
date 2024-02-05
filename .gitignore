@@ -62,6 +62,9 @@ server
 app
 .vscode/c_cpp_properties.json
 
+#web
+web/
+
 
 # vscode 
 .vscode/

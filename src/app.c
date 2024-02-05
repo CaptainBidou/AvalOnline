@@ -42,7 +42,7 @@ evolution_t promptEvolution(int numCoup);
 aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t evolution);
 
 // Thread du serveur d'hébergement
-void host(char *hostIp, short hostPort);
+void host(party_t *myParty);
 
 // Requete vers le serveur d'enregistrement
 aotp_response_t createPartyReq(char *hostIp, short hostPort);
@@ -341,8 +341,8 @@ void *handleClient(void *arg) {
 * \param hostIp Adresse IP de l'hôte
 * \param hostPort Port de l'hôte
 */
-void host(char *hostIp, short hostPort) {
-    host_se = createListeningSocket(hostIp, hostPort, DEFAULT_AOTP_MAX_CLIENTS);
+void host(party_t *myParty) {
+    host_se = createListeningSocket(myParty->host_ip, myParty->host_port, DEFAULT_AOTP_MAX_CLIENTS);
     hostPosition = getPositionInitiale();
     
     while(1) {
@@ -546,7 +546,12 @@ int handleResponse(aotp_response_t response_data) {
             myParty = response_data.parties->party;
             client->state = response_data.client_state;
             // TODO : remplacer par un thread pour que l'host puisse continuer à jouer
-            host(myParty->host_ip, myParty->host_port);
+            
+            pthread_t * threadHost;
+            pthread_create(threadHost, NULL, host, myParty);
+            joinGame(client, response_data.parties->party->state);
+
+
             return 1;
         case AOTP_PARTY_JOINED:
             // On change l'état du client
