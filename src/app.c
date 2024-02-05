@@ -1,3 +1,6 @@
+/* ------------------------------------------------------------------------ */
+/*                   E N T Ê T E S    S T A N D A R D S                     */
+/* ------------------------------------------------------------------------ */
 #include "aotp.h"
 #include "mysyscall.h"
 #include "design.h"
@@ -6,47 +9,158 @@
 #include <unistd.h>
 #include <pthread.h>
 
-// Variables globales
-
-///  Variable en tant que host
+/* ------------------------------------------------------------------------ */
+/*                   v A R I A B L E S  G L O B A L E S                     */
+/* ------------------------------------------------------------------------ */
+///  Variables en tant que host
 party_t *myParty = NULL; // Informations de la partie de l'utilisateur
 list_client_t *players = NULL; // Liste des joueurs connectés
 position_t hostPosition;
 
-/// Variable en tant que client
+/// Variables en tant que client
 list_party_t *parties = NULL; // Liste des parties en cours
 client_t *client = NULL; // Informations du client
 position_t position; // Position actuelle du client
+
 char *serverAddress;
 short serverPort;
 
+socket_t *host_se= NULL , *host_sd =NULL; // Socket d'écoute et socket de dialogue
 
-
-void playGame(client_t *client, party_state_t state);
+/* ------------------------------------------------------------------------ */
+/*   P R O T O T Y P E S   D E   F O N C T I O N S  S T A N D A R D S       */
+/* ------------------------------------------------------------------------ */
 void exitFunction(); // Fonction de sortie
-int handleResponse(aotp_response_t response_data);
+
+
+/* ------------------------------------------------------------------------ */
+/*   P R O T O T Y P E S   D E   F O N C T I O N S  J E U X  C L I E N T    */
+/* ------------------------------------------------------------------------ */
+/**
+ * \fn void playGame(client_t *client)
+ * \brief Fonction de déroulement du jeu pour un client
+ * \param client Informations du client
+ * 
+ * Cette fonction fait une requête pour connaitre l'état de la partie
+ * Si l'état est WAITING, on demande au client s'il est prêt
+ * Si l'état est PLAYING, le client est spectateur et se mets dans une boucle d'attente de la position
+*/
+void joinGame(client_t *client, party_state_t state);
+
+/**
+* \fn void gameLoop(client_t *client, client_state_t state)
+* \brief Boucle de jeu
+* \param client Informations du client
+* \param state Etat du client
+*/
 void gameLoop(client_t *client, client_state_t state);
 
-aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t evolution);
 
-// Thread du serveur d'hébergement
-void host(party_t *myParty);
 
-// Requete vers le serveur d'enregistrement
+
+/* ------------------------------------------------------------------------------ */
+/*   P R O T O T Y P E S   D E   F O N C T I O N S  R E Q  F R O M  C L I E N T   */
+/* ------------------------------------------------------------------------------ */
+
+
+
+// Requetes vers le serveur d'enregistrement
+
+/**
+* \fn void createPartyReq(char *hostIp, short hostPort)
+* \brief Crée une partie
+* \param hostIp Adresse IP de l'hôte
+* \param hostPort Port de l'hôte
+* \return Réponse du serveur
+*/
 aotp_response_t createPartyReq(char *hostIp, short hostPort);
+
+
+/**
+* \fn aotp_response_t listPartyReq()
+* \brief Requête de liste des parties
+* \return Réponse du serveur
+*/
 aotp_response_t listPartyReq();
+
+/**
+* \fn aotp_response_t connReq(char *pseudo)
+* \brief Requête de connexion
+* \param pseudo Pseudo du client
+* \return Réponse du serveur
+*/
 aotp_response_t connReq(char *pseudo);
 
-// Requete vers le serveur de jeu
+
+
+// Requetes vers le serveur de jeu
+
+/**
+* \fn aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char destination)
+* \brief Requête pour jouer un coup classique
+* \param client Informations du client
+* \param p Position actuelle
+* \param origine Case d'origine
+* \param destination Case de destination
+* \return Réponse du serveur
+*/
 aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char destination);
+
+/**
+* \fn aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t evolution)
+* \brief Requête pour jouer un coup évolution
+* \param client Informations du client
+* \param p Position actuelle
+* \param evolution Evolution
+* \return Réponse du serveur
+*/
 aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t evolution);
+
+/**
+* \fn aotp_response_t requestJoinParty(client_t *client, party_id_t partyId)
+* \brief Requête pour rejoindre une partie
+* \param client Informations du client
+* \param partyId Identifiant de la partie
+* \return Réponse du serveur
+*/
 aotp_response_t requestJoinParty(client_t *client, party_id_t partyId);
 
+
+/* ------------------------------------------------------------------------------ */
+/*   P R O T O T Y P E S   D E   F O N C T I O N S  R E P  T O  C L I E N T       */
+/* ------------------------------------------------------------------------------ */
+/**
+* \fn int handleResponse(aotp_response_t response_data)
+* \brief Gestion des réponses
+* \param response_data Réponse du serveur
+* \return 1 si la réponse a été gérée, 0 sinon
+*/
+int handleResponse(aotp_response_t response_data);
+
+
+/* --------------------------------------------------------------*/
+/*   P R O T O T Y P E S   D E   F O N C T I O N S  H O S T      */
+/* --------------------------------------------------------------*/
 //serveur de jeu 
-void jouerPartyHost(socket_t * jaune,socket_t* rouge );
+/**
+* \fn aotp_response_t requestReady(client_t *client)
+* \brief Requête pour indiquer que le client est prêt
+* \param client Informations du client
+* \return Réponse du serveur
+*/
 aotp_response_t requestReady(client_t *client);
 
-socket_t *host_se= NULL , *host_sd =NULL; // Socket d'écoute et socket de dialogue
+// Thread du serveur d'hébergement
+/**
+* \fn void host(char *hostIp, short hostPort)
+* \brief Héberge une partie
+* \param hostIp Adresse IP de l'hôte
+* \param hostPort Port de l'hôte
+*/
+void host(party_t *myParty);
+
+
+
 
 int main(int argc, char *argv[]) {
     atexit(exitFunction);
@@ -362,14 +476,14 @@ void joinGame(client_t *client, party_state_t state) {
             }
             
             // On attend la réponse PARTY_STARTED
-            pthread_t * threadAffichage;
-            pthread_create(threadAffichage, NULL, afficherEnAttente, "En attente de la partie");
+            //pthread_t * threadAffichage;
+            //pthread_create(threadAffichage, NULL, afficherEnAttente, "En attente de la partie");
 
             aotp_response_t response;
             recv_data(client->socket, &response, (serialize_t) response2Struct);
 
             // On arrête le thread d'affichage
-            pthread_cancel(threadAffichage);
+            //pthread_cancel(threadAffichage);
 
 
             handleResponse(response);
@@ -478,15 +592,6 @@ int handleResponse(aotp_response_t response_data) {
             break;
     }
     return 0;
-}
-/**
- * \fn jouerPartyHost(socket_t * jaune,socket_t* rouge )
- * \brief joue une partie en tant qu'hôte
- * \param jaune Socket du joueur jaune
- * \param rouge Socket du joueur rouge
-*/
-void jouerPartyHost(socket_t * jaune,socket_t* rouge ) {
-
 }
 
 /**
