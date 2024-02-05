@@ -9,7 +9,16 @@ void playEvolution(socket_t *socket, aotp_request_t *requestData, list_client_t 
 void sendPositionToClients(list_client_t *clients, position_t *position);
 
 
-
+/**
+* \fn void playMove(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, position_t *position);
+* \brief Gestion d'un coup joué par un client
+* \param socket Socket du client
+* \param requestData Requete du client
+* \param clients Liste des clients
+* \param position Position actuelle
+* \note Cette fonction est appelée lorsqu'un client joue un coup
+* \warning Cette fonction modifie la position actuelle
+*/
 void playMove(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, position_t *position) {
     // On récupère le coup joué
     coup_t *coup = requestData->coup;
@@ -37,6 +46,17 @@ void playMove(socket_t *socket, aotp_request_t *requestData, list_client_t **cli
     sendPositionToClients(*clients, position);
 }
 
+
+/**
+* \fn void playEvolution(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, position_t *position);
+* \brief Gestion d'une évolution jouée par un client
+* \param socket Socket du client
+* \param requestData Requete du client
+* \param clients Liste des clients
+* \param position Position actuelle
+* \note Cette fonction est appelée lorsqu'un client joue une évolution
+* \warning Cette fonction modifie la position actuelle
+*/
 void playEvolution(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, position_t *position) {
     // On récupère l'évolution jouée
     evolution_t *evolution = requestData->evolution;
@@ -57,6 +77,7 @@ void playEvolution(socket_t *socket, aotp_request_t *requestData, list_client_t 
     sendPositionToClients(*clients, position);
     
 }
+
 /**
  * \fn void sendPositionToClients(list_client_t *clients, position_t *position);
  * \brief Fonction d'envoi de la position à tous les clients
