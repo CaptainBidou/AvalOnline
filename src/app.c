@@ -549,8 +549,10 @@ int handleResponse(aotp_response_t response_data) {
             
             pthread_t * threadHost;
             pthread_create(threadHost, NULL, host, myParty);
-            joinGame(client, response_data.parties->party->state);
-
+            client->socket = connectToServer(myParty->host_ip, myParty->host_port);
+            handleResponse(requestJoinParty(client,myParty->id));
+            
+                
 
             return 1;
         case AOTP_PARTY_JOINED:
