@@ -132,6 +132,10 @@ int main(int argc, char *argv[]) {
     }
 }
 
+/**
+* \fn void clearBuffer()
+* \brief Vide le buffer
+*/
 void clearBuffer()
 {
     int c;
@@ -139,6 +143,10 @@ void clearBuffer()
         ;
 }
 
+/**
+* \fn void menu()
+* \brief Affiche le menu client
+*/
 void menu() {
     COULEUR(RED);
     printf("\n\nQue voulez-vous faire ?\n");
@@ -148,6 +156,10 @@ void menu() {
     COLOR_RESET;
 }
 
+/**
+* \fn void loadingBar()
+* \brief Affiche une barre de chargement totalement inutile
+*/
 void loadingBar()
 {
     // Barre de chargement
@@ -167,6 +179,11 @@ void loadingBar()
     COLOR_RESET;
 }
 
+/**
+* \fn void getPseudo(char *pseudo)
+* \brief Demande le pseudo du client
+* \param pseudo Pseudo du client
+*/
 void getPseudo(char *pseudo)
 {
     system("clear");
@@ -188,6 +205,10 @@ void getPseudo(char *pseudo)
     pseudo[i] = '\0';
 }
 
+/**
+* \fn void afficherParties()
+* \brief Affiche les parties en cours
+*/
 void afficherParties() {
     printf("\n\nParties en cours :\n");
     // afficher les parties de la liste
@@ -207,6 +228,13 @@ void afficherParties() {
 
 }
 
+/**
+* \fn void createPartyReq(char *hostIp, short hostPort)
+* \brief Crée une partie
+* \param hostIp Adresse IP de l'hôte
+* \param hostPort Port de l'hôte
+* \return Réponse du serveur
+*/
 aotp_response_t createPartyReq(char *hostIp, short hostPort) {
     socket_t *socket = connectToServer(serverAddress, serverPort);
     
@@ -224,6 +252,13 @@ aotp_response_t createPartyReq(char *hostIp, short hostPort) {
     free(socket);
     return response;
 }
+
+/**
+* \fn aotp_response_t connReq(char *pseudo)
+* \brief Requête de connexion
+* \param pseudo Pseudo du client
+* \return Réponse du serveur
+*/
 
 aotp_response_t connReq(char *pseudo) {
     socket_t *socket = connectToServer(serverAddress, serverPort);
@@ -252,7 +287,11 @@ aotp_response_t connReq(char *pseudo) {
     return response;
 }
 
-
+/**
+* \fn aotp_response_t listPartyReq()
+* \brief Requête de liste des parties
+* \return Réponse du serveur
+*/
 aotp_response_t listPartyReq() {
     // Envoi de la requête de connexion
     socket_t *socket = connectToServer(serverAddress, serverPort);
@@ -271,6 +310,11 @@ aotp_response_t listPartyReq() {
     return response;
 }
 
+/**
+* \fn void *handleClient(void *arg)
+* \brief Gestion des clients 
+* \param arg Argument
+*/
 void *handleClient(void *arg) {
     printf("Client connecté\n");
     socket_t *sd = (socket_t *) arg;
@@ -291,6 +335,12 @@ void *handleClient(void *arg) {
     // Todo : Vérifier si le client a quitté et fermer la socket
 }
 
+/**
+* \fn void host(char *hostIp, short hostPort)
+* \brief Héberge une partie
+* \param hostIp Adresse IP de l'hôte
+* \param hostPort Port de l'hôte
+*/
 void host(char *hostIp, short hostPort) {
     host_se = createListeningSocket(hostIp, hostPort, DEFAULT_AOTP_MAX_CLIENTS);
     hostPosition = getPositionInitiale();
@@ -306,6 +356,15 @@ void host(char *hostIp, short hostPort) {
     freeSocket(host_se);
 }
 
+/**
+* \fn aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char destination)
+* \brief Requête pour jouer un coup classique
+* \param client Informations du client
+* \param p Position actuelle
+* \param origine Case d'origine
+* \param destination Case de destination
+* \return Réponse du serveur
+*/
 aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char destination){
     // Envoi de la requête de connexion
     aotp_request_t *request = createRequest(AOTP_SEND_MOVE);
@@ -324,6 +383,14 @@ aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char 
     return response;
 }
 
+/**
+* \fn aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t evolution)
+* \brief Requête pour jouer un coup évolution
+* \param client Informations du client
+* \param p Position actuelle
+* \param evolution Evolution
+* \return Réponse du serveur
+*/
 aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t evolution) {
     // Envoi de la requête de connexion
     aotp_request_t *request = createRequest(AOTP_SEND_EVOLUTION);
@@ -341,6 +408,13 @@ aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t ev
     return response;
 }
 
+/**
+* \fn aotp_response_t requestJoinParty(client_t *client, party_id_t partyId)
+* \brief Requête pour rejoindre une partie
+* \param client Informations du client
+* \param partyId Identifiant de la partie
+* \return Réponse du serveur
+*/
 aotp_response_t requestJoinParty(client_t *client, party_id_t partyId) {
     // Récupération de la partie
     party_t *party = getPartyById(parties, partyId);
@@ -407,6 +481,12 @@ void joinGame(client_t *client, party_state_t state) {
     }
 }
 
+/**
+* \fn void promptHostIpPort(char *hostIp, short *hostPort)
+* \brief Demande à l'utilisateur l'adresse IP et le port pour héberger une partie
+* \param hostIp Adresse IP de l'hôte
+* \param hostPort Port de l'hôte
+*/
 void promptHostIpPort(char *hostIp, short *hostPort) {
     COULEUR(RED);
     printf("Veuillez entrer l'adresse IP de votre machine : ");
@@ -422,6 +502,10 @@ void promptHostIpPort(char *hostIp, short *hostPort) {
     COLOR_RESET;
 }
 
+/**
+* \fn void exitFunction()
+* \brief Fonction de sortie
+*/
 void exitFunction() {
     // Envoi de la requête de déconnexion au serveur d'enregistrement
     
@@ -429,11 +513,15 @@ void exitFunction() {
     freeSocket(client->socket);
     freeSocket(host_se);
 
-
     // Libération de la mémoire
 }
 
-
+/**
+* \fn int handleResponse(aotp_response_t response_data)
+* \brief Gestion des réponses
+* \param response_data Réponse du serveur
+* \return 1 si la réponse a été gérée, 0 sinon
+*/
 int handleResponse(aotp_response_t response_data) {
     printf("Code de la réponse : %d\n", response_data.code);
     switch (response_data.code) {
@@ -510,6 +598,12 @@ void jouerPartyHost(socket_t * jaune,socket_t* rouge ) {
 
 }
 
+/**
+* \fn aotp_response_t requestReady(client_t *client)
+* \brief Requête pour indiquer que le client est prêt
+* \param client Informations du client
+* \return Réponse du serveur
+*/
 aotp_response_t requestReady(client_t *client) {
     // Envoi de la requête de connexion
     aotp_request_t *request = createRequest(AOTP_SET_READY);
@@ -524,6 +618,12 @@ aotp_response_t requestReady(client_t *client) {
     return response;
 }
 
+/**
+* \fn void gameLoop(client_t *client, client_state_t state)
+* \brief Boucle de jeu
+* \param client Informations du client
+* \param state Etat du client
+*/
 void gameLoop(client_t *client, client_state_t state) {
     // TODO : Boucle de jeu
     COULEUR(RED);
@@ -580,7 +680,12 @@ void gameLoop(client_t *client, client_state_t state) {
 }
 
 
-
+/**
+* \fn evolution_t promptEvolution(int numCoup)
+* \brief Demande à l'utilisateur de choisir une évolution
+* \param numCoup Numéro du coup
+* \return Evolution
+*/
 evolution_t promptEvolution(int numCoup) {
     evolution_t evolution = {0, 0, 0, 0};
     COULEUR(RED);
@@ -609,6 +714,11 @@ evolution_t promptEvolution(int numCoup) {
     return evolution;
 }
 
+/**
+* \fn void afficherEnAttente(char * message)
+* \brief Affiche un message avec une animation de chargement
+* \param message Message à afficher
+*/
 void afficherEnAttente(char * message) {
     char animation[] = {'|', '/', '-', '\\'};
     int i = 0;
