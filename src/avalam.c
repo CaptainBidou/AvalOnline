@@ -7,15 +7,32 @@
 extern voisins_t topologie[NBCASES]; 
 position_t positionInitiale; 
 
+/**
+ * \fn     char nbVoisins(char numCase)
+ * \brief  Retourne le nombre de voisins de la case numCase
+ * \param  numCase numéro de la case
+ * \return nombre de voisins de la case numCase
+ */
 char nbVoisins(char numCase) {
-	// renvoie le nombre de voisins d'une case
 	return topologie[numCase].nb; 
 }
 
+/**
+ * \fn     voisins_t getVoisins(char numCase)
+ * \brief  Retourne les voisins de la case numCase
+ * \param  numCase numéro de la case
+ * \return voisins de la case numCase (voisins_t)
+*/
 voisins_t getVoisins(char numCase) {
 	return topologie[numCase]; 
 }
 
+/**
+ * \fn    void listerVoisins(char numCase)
+ * \brief Affiche les voisins de la case numCase
+ * \param numCase numéro de la case
+ * \see   voisins_t
+*/
 void listerVoisins(char numCase) {
 	int i; 
 	voisins_t v = getVoisins(numCase);
@@ -25,10 +42,22 @@ void listerVoisins(char numCase) {
 	printf("\n");
 }
 
+/**
+ * \fn     char estVoisin(char numCase1, char numCase2)
+ * \brief  Retourne la position initiale du jeu
+ * \return position initiale du jeu (position_t)
+ * \see    position_t
+*/
 position_t getPositionInitiale() {
 	return positionInitiale ;
 }
 
+/**
+ * \fn	  void afficherPosition(position_t p)
+ * \brief Affiche la position p
+ * \param p position à afficher
+ * \see   position_t
+*/
 void afficherPosition(position_t p) {
 	int i; int delta; 
 	for(i=0;i<NBCASES;i++) {
@@ -45,7 +74,13 @@ void afficherPosition(position_t p) {
 	
 }
 
-
+/**
+ * \fn listeCoups_t getCoupsLegaux(position_t p)
+ * \brief Retourne la liste des coups légaux dans la position p
+ * \param p position
+ * \return liste des coups légaux
+ * 
+*/
 listeCoups_t getCoupsLegaux(position_t p) {
 	listeCoups_t l ={0};
 
@@ -76,13 +111,26 @@ listeCoups_t getCoupsLegaux(position_t p) {
 	return l; 
 }
 
-
+/**
+ * \fn void addCoup(listeCoups_t * pL, char origine, char destination)
+ * \brief Ajoute un coup à la liste de coups
+ * \param pL liste de coups
+ * \param origine case d'origine du coup
+ * \param destination case de destination du coup
+ * \see listeCoups_t
+*/
 void addCoup(listeCoups_t * pL, char origine, char destination) {
 	pL->coups[pL->nb].origine = origine; 
 	pL->coups[pL->nb].destination = destination; 
 	pL->nb++; 
 }
 
+/**
+ * \fn void afficherListeCoups(listeCoups_t l)
+ * \brief Affiche la liste de coups l
+ * \param l liste de coups à afficher
+ * \see listeCoups_t
+*/
 void afficherListeCoups(listeCoups_t l) {
 	int i; 
 	for(i=0;i<l.nb;i++) {
@@ -90,6 +138,15 @@ void afficherListeCoups(listeCoups_t l) {
 	}
 }
 
+/**
+ * \fn char estValide(position_t p, char origine, char destination)
+ * \brief Vérifie si un coup est valide
+ * \param p position
+ * \param origine case d'origine du coup
+ * \param destination case de destination du coup
+ * \return VRAI si le coup est valide, FAUX sinon
+ * \see position_t
+*/
 char estValide(position_t p, char origine, char destination) {
 
 	voisins_t v; int i;
@@ -119,6 +176,15 @@ char estValide(position_t p, char origine, char destination) {
 	return FAUX;
 }
 
+/**
+ * \fn jouerCoup(position_t p, char origine, char destination)
+ * \brief Joue un coup dans la position p
+ * \param p position
+ * \param origine case d'origine du coup
+ * \param destination case de destination du coup
+ * \return position après le coup
+ * \see position_t
+*/
 position_t jouerCoup(position_t p, char origine, char destination) {
 	if (!estValide(p,origine,destination)) return p;
 
@@ -143,7 +209,12 @@ position_t jouerCoup(position_t p, char origine, char destination) {
 }
 
 
-
+/**
+ * @fn void afficherScore(score_t s)
+ * @brief Affiche le score s
+ * @param s score à afficher
+ * @see score_t
+*/
 score_t evaluerScore(position_t p) {
 	score_t s ={0};
 	int i;
@@ -174,13 +245,21 @@ score_t evaluerScore(position_t p) {
 	return s; 
 }
 
+/**
+ * \fn void afficherScore(score_t s)
+ * \brief Affiche le score s
+ * \param s score à afficher
+ * \see score_t
+*/
 void afficherScore(score_t s) {
 	printf("J: %d (%d piles de 5) - R : %d (%d piles de 5)\n", s.nbJ, s.nbJ5, s.nbR, s.nbR5);
 }
 
 /**
- * \fn void writePosition(position_t p)
- * \brief Ecrit la position p dans le fichier json web/avalonline.json
+ * \fn int writePosition(position_t p)
+ * \brief Ecrit la position p dans un fichier web/avalonline.json
+ * \param p position à écrire
+ * \return 0 si l'écriture s'est bien passée, -1 sinon
 */
 int writePosition(position_t p) {
 	FILE *fic=NULL; // Pointeur de notre fichier
@@ -211,7 +290,12 @@ int writePosition(position_t p) {
 	return 1;
 }
 
-
+/**
+ * \fn void jouerEvolution(position_t p, evolution_t evolution)
+ * \brief joue les coups d'évolution
+ * \param position position actuelle
+ * \param evolution pions évolution
+*/
 position_t jouerEvolution(position_t position ,evolution_t evolution){
 	if(position.trait == JAU && position.numCoup == 0) position.evolution.bonusJ = evolution.bonusJ;
     if(position.trait == ROU && position.numCoup == 1) position.evolution.bonusR = evolution.bonusR;

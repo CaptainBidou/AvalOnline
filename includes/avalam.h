@@ -131,9 +131,7 @@ typedef struct {
 /**
  * \struct position_t
  * \brief Structure représentant une position du jeu
- * 
- * La structure contient le trait, le nombre de coups joués, les colonnes du jeu
- * et les pions évolution.
+ * \note La structure contient le trait, le nombre de coups joués, les colonnes du jeu et les pions évolution.
  * \see evolution_t
  * \see colonne_t
 */
@@ -277,6 +275,18 @@ int writePosition(position_t p);
  * \param evolution pions évolution
 */
 position_t jouerEvolution(position_t position ,evolution_t evolution);
+
+
+/**
+ * \fn char estValide(position_t p, char origine, char destination)
+ * \brief Vérifie si un coup est valide
+ * \param p position
+ * \param origine case d'origine du coup
+ * \param destination case de destination du coup
+ * \return VRAI si le coup est valide, FAUX sinon
+ * \see position_t
+*/
+char estValide(position_t p, char origine, char destination);
 
 #endif
 
