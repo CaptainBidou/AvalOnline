@@ -128,5 +128,3 @@ int is2PlayersReady(list_client_t *clients) {
     }
     return nbReady == 2;
 }
-
-

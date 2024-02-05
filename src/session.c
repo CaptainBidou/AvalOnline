@@ -245,6 +245,7 @@ socket_t *initSocket(int mode, int fd) {
  * \note    Cette fonction est utilisée pour les sockets TCP et UDP
 */
 void freeSocket(socket_t *sock) {
+    if( sock == NULL) return;
     close(sock->fd);
     // On libère la mémoire
     free(sock);

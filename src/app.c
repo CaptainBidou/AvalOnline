@@ -30,7 +30,7 @@ short serverPort;
 void clearBuffer();
 void menu();
 void loadingBar();
-void afficherEnAttente(char * message,int bool);
+void afficherEnAttente(char * message);
 void getPseudo(char *pseudo);
 void afficherParties();
 void promptHostIpPort(char *hostIp, short *hostPort);
@@ -58,7 +58,7 @@ aotp_response_t requestJoinParty(client_t *client, party_id_t partyId);
 void jouerPartyHost(socket_t * jaune,socket_t* rouge );
 aotp_response_t requestReady(client_t *client);
 
-socket_t *host_se, *host_sd; // Socket d'écoute et socket de dialogue
+socket_t *host_se=NULL , *host_sd =NULL; // Socket d'écoute et socket de dialogue
 
 int main(int argc, char *argv[]) {
     atexit(exitFunction);
@@ -425,6 +425,11 @@ void promptHostIpPort(char *hostIp, short *hostPort) {
 void exitFunction() {
     // Envoi de la requête de déconnexion au serveur d'enregistrement
     
+    //je supprime les socket
+    freeSocket(client->socket);
+    freeSocket(host_se);
+
+
     // Libération de la mémoire
 }
 
@@ -604,13 +609,13 @@ evolution_t promptEvolution(int numCoup) {
     return evolution;
 }
 
-void afficherEnAttente(char * message,int bool) {
+void afficherEnAttente(char * message) {
     char animation[] = {'|', '/', '-', '\\'};
     int i = 0;
     system("clear");
     printf("\033[1;31m"); // Changement de couleur du texte en rouge
     
-    while (bool==1) {
+    while (1) {
         printf("\r%s %c ",message, animation[i]);
         fflush(stdout); // Rafraîchissement de la sortie standard
         usleep(200000); // Pause de 200 millisecondes (0.2 seconde)
