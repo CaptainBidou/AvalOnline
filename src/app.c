@@ -1,17 +1,12 @@
 #include "aotp.h"
 #include "mysyscall.h"
+#include "design.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
 
-#define COULEUR(i) printf("\e[%dm", i)
-#define COLOR_RESET printf("\e[0m")
-#define RED 31
-#define GREEN 32
-#define BLUE 34
-
-// Variable globale
+// Variables globales
 
 ///  Variable en tant que host
 party_t *myParty = NULL; // Informations de la partie de l'utilisateur
@@ -26,19 +21,12 @@ char *serverAddress;
 short serverPort;
 
 
-// Fonctions propre à l'interface
-void clearBuffer();
-void menu();
-void loadingBar();
-void afficherEnAttente(char * message);
-void getPseudo(char *pseudo);
-void afficherParties();
-void promptHostIpPort(char *hostIp, short *hostPort);
+
 void playGame(client_t *client, party_state_t state);
 void exitFunction(); // Fonction de sortie
 int handleResponse(aotp_response_t response_data);
 void gameLoop(client_t *client, client_state_t state);
-evolution_t promptEvolution(int numCoup);
+
 aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t evolution);
 
 // Thread du serveur d'hébergement
@@ -58,7 +46,7 @@ aotp_response_t requestJoinParty(client_t *client, party_id_t partyId);
 void jouerPartyHost(socket_t * jaune,socket_t* rouge );
 aotp_response_t requestReady(client_t *client);
 
-socket_t *host_se=NULL , *host_sd =NULL; // Socket d'écoute et socket de dialogue
+socket_t *host_se= NULL , *host_sd =NULL; // Socket d'écoute et socket de dialogue
 
 int main(int argc, char *argv[]) {
     atexit(exitFunction);
@@ -86,7 +74,7 @@ int main(int argc, char *argv[]) {
         COULEUR(RED);
         printf("\n\nBienvenue \e[%dm%s, \e[%dmvoici la liste des parties en cours !\n", GREEN, client->pseudo, RED);
         // Affichage des parties en cours
-        afficherParties();
+        afficherParties(parties);
         menu();
         COULEUR(GREEN);
         char choix = fgetc(stdin);
@@ -132,101 +120,7 @@ int main(int argc, char *argv[]) {
     }
 }
 
-/**
-* \fn void clearBuffer()
-* \brief Vide le buffer
-*/
-void clearBuffer()
-{
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF)
-        ;
-}
 
-/**
-* \fn void menu()
-* \brief Affiche le menu client
-*/
-void menu() {
-    COULEUR(RED);
-    printf("\n\nQue voulez-vous faire ?\n");
-    printf("1. Créer une partie\n");
-    printf("2. Rejoindre une partie\n");
-    printf("3. Quitter\n");
-    COLOR_RESET;
-}
-
-/**
-* \fn void loadingBar()
-* \brief Affiche une barre de chargement totalement inutile
-*/
-void loadingBar()
-{
-    // Barre de chargement
-    COULEUR(BLUE);
-    printf("\nRécupération des données en cours...\n");
-    for (int i = 0; i < 100; i++) {
-        printf("\r");
-        printf("[");
-        for (int j = 0; j < i; j++) printf("=");
-
-        for (int j = 0; j < 100 - i; j++) printf(" ");
-        printf("] %d%%", i);
-        fflush(stdout);
-        usleep(1000);
-    }
-    printf("\n");
-    COLOR_RESET;
-}
-
-/**
-* \fn void getPseudo(char *pseudo)
-* \brief Demande le pseudo du client
-* \param pseudo Pseudo du client
-*/
-void getPseudo(char *pseudo)
-{
-    system("clear");
-    COULEUR(RED);
-    printf("------ Bienvenue sur AvalOnline ! ------ \n\n");
-    COLOR_RESET;
-    COULEUR(RED);
-    printf("Veuillez entrer votre pseudo : ");
-    COLOR_RESET;
-    COULEUR(GREEN);
-    fgets(pseudo, 20, stdin);
-    COLOR_RESET;
-    // Suppression du \n à la fin du pseudo
-    int i = 0;
-    while (pseudo[i] != '\n')
-    {
-        i++;
-    }
-    pseudo[i] = '\0';
-}
-
-/**
-* \fn void afficherParties()
-* \brief Affiche les parties en cours
-*/
-void afficherParties() {
-    printf("\n\nParties en cours :\n");
-    // afficher les parties de la liste
-    if(parties == NULL) {
-        COULEUR(BLUE);
-        printf("\e[0mAucune partie en cours\n");
-        return;
-    }
-
-    list_party_t *current = parties;
-    while(current != NULL) {
-        COULEUR(BLUE);
-        char *status = partyState2String(current->party->state);
-        printf("%3d. \e[0m Partie de %-15s %s\n", current->party->id, current->party->host_pseudo, status);
-        current = current->next;
-    }
-
-}
 
 /**
 * \fn void createPartyReq(char *hostIp, short hostPort)
@@ -466,16 +360,16 @@ void joinGame(client_t *client, party_state_t state) {
             if(choix == 'o') {
                 handleResponse(requestReady(client));
             }
-            /*
+            
             // On attend la réponse PARTY_STARTED
             pthread_t * threadAffichage;
-            pthread_create(threadAffichage, NULL, afficherEnAttente, "En attente de la partie");*/
+            pthread_create(threadAffichage, NULL, afficherEnAttente, "En attente de la partie");
 
             aotp_response_t response;
             recv_data(client->socket, &response, (serialize_t) response2Struct);
 
             // On arrête le thread d'affichage
-            //pthread_cancel(threadAffichage);
+            pthread_cancel(threadAffichage);
 
 
             handleResponse(response);
@@ -489,26 +383,7 @@ void joinGame(client_t *client, party_state_t state) {
     }
 }
 
-/**
-* \fn void promptHostIpPort(char *hostIp, short *hostPort)
-* \brief Demande à l'utilisateur l'adresse IP et le port pour héberger une partie
-* \param hostIp Adresse IP de l'hôte
-* \param hostPort Port de l'hôte
-*/
-void promptHostIpPort(char *hostIp, short *hostPort) {
-    COULEUR(RED);
-    printf("Veuillez entrer l'adresse IP de votre machine : ");
-    COLOR_RESET;
-    COULEUR(GREEN);
-    fgets(hostIp, 16, stdin);
-    COLOR_RESET;
-    COULEUR(RED);
-    printf("Veuillez entrer le port sur lequel vous souhaitez héberger la partie : ");
-    COLOR_RESET;
-    COULEUR(GREEN);
-    scanf("%hd", hostPort);
-    COLOR_RESET;
-}
+
 
 /**
 * \fn void exitFunction()
@@ -549,9 +424,10 @@ int handleResponse(aotp_response_t response_data) {
             pthread_t * threadHost;
             pthread_create(threadHost, NULL, host, myParty);
             client->socket = connectToServer(myParty->host_ip, myParty->host_port);
+            
             handleResponse(requestJoinParty(client,myParty->id));
             
-                
+
 
             return 1;
         case AOTP_PARTY_JOINED:
@@ -667,7 +543,7 @@ void gameLoop(client_t *client, client_state_t state) {
         if(state == position.trait) {
             char origine, destination;
             if(position.numCoup <= 3) {
-                evolution_t evolution = promptEvolution(position.numCoup);
+                evolution_t evolution = promptEvolution(position.numCoup, position);
                 response = jouerEvolutionReq(client, position, evolution);
             }
             else {
@@ -695,55 +571,5 @@ void gameLoop(client_t *client, client_state_t state) {
 }
 
 
-/**
-* \fn evolution_t promptEvolution(int numCoup)
-* \brief Demande à l'utilisateur de choisir une évolution
-* \param numCoup Numéro du coup
-* \return Evolution
-*/
-evolution_t promptEvolution(int numCoup) {
-    evolution_t evolution = {0, 0, 0, 0};
-    COULEUR(RED);
-    switch (numCoup) {
-        case 0:
-            printf("Veuillez choisir le bonus jaune : ");
-            scanf("%c", &position.evolution.bonusJ);
-        break;
 
-        case 1:
-            printf("Veuillez choisir le bonus rouge : ");
-            scanf("%c", &position.evolution.malusJ);
-        break;
 
-        case 2:
-            printf("Veuillez choisir le malus rouge : ");
-            scanf("%c", &position.evolution.bonusR);
-        break;
-
-        case 3:
-            printf("Veuillez choisir le malus jaune : ");
-            scanf("%c", &position.evolution.malusR);
-        break;
-    }
-    COLOR_RESET;
-    return evolution;
-}
-
-/**
-* \fn void afficherEnAttente(char * message)
-* \brief Affiche un message avec une animation de chargement
-* \param message Message à afficher
-*/
-void afficherEnAttente(char * message) {
-    char animation[] = {'|', '/', '-', '\\'};
-    int i = 0;
-    system("clear");
-    printf("\033[1;31m"); // Changement de couleur du texte en rouge
-    
-    while (1) {
-        printf("\r%s %c ",message, animation[i]);
-        fflush(stdout); // Rafraîchissement de la sortie standard
-        usleep(200000); // Pause de 200 millisecondes (0.2 seconde)
-        i = (i + 1) % 4; // Pour faire tourner l'animation
-    }
-}
