@@ -28,6 +28,7 @@ position_t position; // Position actuelle du client
 void clearBuffer();
 void menu();
 void loadingBar();
+void afficherEnAttente(char * message,int bool);
 void getPseudo(char *pseudo);
 void afficherParties();
 void promptHostIpPort(char *hostIp, short *hostPort);
@@ -99,7 +100,9 @@ int main(int argc, char *argv[]) {
                 promptHostIpPort(hostIp, &hostPort);
                 response = createPartyReq(clientSocket, hostIp, hostPort);
                 handleResponse(response);
-                // TODO : CREER PARTIE
+                
+                //TODO : jouer la partie 
+                
                 break;
             case '2':
                 COULEUR(RED);
@@ -593,4 +596,18 @@ evolution_t promptEvolution(int numCoup) {
     }
     COLOR_RESET;
     return evolution;
+}
+
+void afficherEnAttente(char * message,int bool) {
+    char animation[] = {'|', '/', '-', '\\'};
+    int i = 0;
+    system("clear");
+    printf("\033[1;31m"); // Changement de couleur du texte en rouge
+    
+    while (bool==1) {
+        printf("\r%s %c ",message, animation[i]);
+        fflush(stdout); // Rafraîchissement de la sortie standard
+        usleep(200000); // Pause de 200 millisecondes (0.2 seconde)
+        i = (i + 1) % 4; // Pour faire tourner l'animation
+    }
 }
