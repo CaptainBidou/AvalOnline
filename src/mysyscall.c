@@ -24,6 +24,7 @@ void install_signal_handler(int signalNumber, void (*handler)(int), int flags) {
  */
 
 /**
+ * @fn void display_error(char *msg);
  * @brief Fonction qui initialise un masque de signaux
  * @details La fonction initialise un masque de signaux ou tous les signaux sont bloqués
  * @return void
@@ -38,6 +39,7 @@ void init_mask()
 }
 
 /**
+ * @fn void add_signal_to_mask(int signalNumber);
  * @brief Fonction qui ajoute un signal au masque de signaux
  * @details La fonction ajoute un signal au masque de signaux
  * @param signalNumber Le numéro du signal à ajouter
@@ -55,6 +57,7 @@ void add_signal_to_mask(int signalNumber)
 }
 
 /**
+ * @fn void remove_signal_from_mask(int signalNumber);
  * @brief Fonction qui ajoute un signal au masque de signaux
  * @details La fonction ajoute un signal au masque de signaux
  * @param signalNumber Le numéro du signal à ajouter
@@ -72,6 +75,7 @@ void install_signal_handler(int signalNumber, void (*handler)(int), int flags)
 }
 
 /**
+ * @fn void random_usleep(int min, int max);
  * @brief Fonction qui fait une temporisation aléatoire entre 2 valeurs
  * @details Les valeurs sont en microsecondes
  * @param min La valeur minimale de la temporisation
@@ -90,7 +94,10 @@ void random_usleep(int min, int max)
  */
 
 /**
+ * @fn void display_pthread_attr(pthread_attr_t *attr, char *prefix);
  * @brief Fonction qui affiche les attributs d'un thread
+ * @param attr Les attributs du thread
+ * @param prefix Le préfixe à afficher
  * @details La fonction provient du man init
  * @param attr Les attributs du thread
  */
@@ -130,12 +137,13 @@ void display_pthread_attr(pthread_attr_t *attr, char *prefix)
 }
 
 /**
- * \fn Fonction qui créer un thread avec un numéro
- * \details La fonction créer un thread avec un numéro
- * \param thread Le thread à créer
- * \param start_routine La fonction à exécuter
- * \param thread_number Le numéro du thread
- * \return void
+ * @fn pthread_t create_thread(pthread_t *thread, void *(*start_routine)(void *), long thread_number);
+ * @brief Fonction qui créer un thread avec un numéro
+ * @param thread Le thread à créer
+ * @param start_routine La fonction à exécuter
+ * @param thread_number Le numéro du thread
+ * @return Le thread créé
+ * @details La fonction créer un thread
  */
 pthread_t create_thread(pthread_t *thread, void *(*start_routine)(void *), long thread_number) {
     // Creation de l'attribut du thread
@@ -156,6 +164,10 @@ pthread_t create_thread(pthread_t *thread, void *(*start_routine)(void *), long 
  */
 
 /**
+ * @fn sem_t *create_named_sem(char *name, int value);
+ * @param name Nom de la sémaphore
+ * @param value Valeur initiale de la sémaphore
+ * @return La sémaphore créée
  * @brief Fonction qui créer une sémaphore nommé
  */
 sem_t *create_named_sem(char *name, int value) {
@@ -165,7 +177,10 @@ sem_t *create_named_sem(char *name, int value) {
 }
 
 /**
+ * @fn sem_t *open_named_sem(char *name);
  * @brief Fonction qui ouvre une sémaphore nommé
+ * @param name Nom de la sémaphore
+ * @return La sémaphore ouverte
  * @details la sémpahore doit être créé avant
  */
 sem_t *open_named_sem(char *name) {
@@ -175,6 +190,8 @@ sem_t *open_named_sem(char *name) {
 }
 
 /**
+ * @fn void close_named_sem(sem_t *sem);
+ * @param sem Sémaphore à fermer
  * @brief Fonction qui ferme une sémaphore nommé
  */
 void close_named_sem(sem_t *sem) {
@@ -182,6 +199,8 @@ void close_named_sem(sem_t *sem) {
 }
 
 /**
+ * @fn void unlink_named_sem(char *name);
+ * @param name Nom de la sémaphore
  * @brief Fonction qui supprime une sémaphore nommé
  */
 void unlink_named_sem(char *name) {

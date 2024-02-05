@@ -259,7 +259,6 @@ aotp_response_t createPartyReq(char *hostIp, short hostPort) {
 * \param pseudo Pseudo du client
 * \return Réponse du serveur
 */
-
 aotp_response_t connReq(char *pseudo) {
     socket_t *socket = connectToServer(serverAddress, serverPort);
     // Envoi de la requête de connexion

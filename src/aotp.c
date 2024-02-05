@@ -542,6 +542,15 @@ void listPartiesRep(socket_t *socket, aotp_request_t *requestData, list_client_t
     sendResponse(socket, AOTP_PARTY_LIST_RETREIVED, *parties, NULL, 0, CLIENT_UNKOWN);
 }
 
+/**
+* \fn void setReady(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, position_t *position);
+* \brief Change l'etat du client en prêt, et lance la partie si tous les clients sont prêts
+* \param socket Socket du client
+* \param requestData Requete du client
+* \param clients Liste des clients
+* \param position Position actuelle
+* \note Cette fonction est appelée lorsqu'un client est prêt à jouer
+*/
 void setReady(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, position_t *position) {
     // On recupere le client
     client_t *client = getClientById(*clients, requestData->client_id);
