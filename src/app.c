@@ -92,7 +92,7 @@ aotp_response_t listPartyReq();
 aotp_response_t connReq(char *pseudo);
 
 
-
+/**************************************************************************************************/
 // Requetes vers le serveur de jeu
 
 /**
@@ -643,7 +643,7 @@ void gameLoop(client_t *client, client_state_t state) {
     printf("[DEBUG] selectionner le fichier web/js/avalonline-%d.js\n", getpid());
     aotp_response_t response;
     int successResponse = 0;
-    while(1) {
+    while(1) {//TOMAS: boucle infinie - il faut pas plutot mettre dès qu'on a plus de coups à jouer ? 
         printf("[DEBUG] Trait : %d State : %d\n", position.trait, state);
         if(state == position.trait) {
             char origine, destination;
