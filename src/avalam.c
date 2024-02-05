@@ -210,3 +210,13 @@ int writePosition(position_t p) {
 	fclose(fic);
 	return 1;
 }
+
+
+position_t jouerEvolution(position_t position ,evolution_t evolution){
+	if(position.trait == JAU && position.numCoup == 0) position.evolution.bonusJ = evolution.bonusJ;
+    if(position.trait == ROU && position.numCoup == 1) position.evolution.bonusR = evolution.bonusR;
+    if(position.trait == ROU && position.numCoup == 2) position.evolution.malusR = evolution.malusR;
+    if(position.trait == JAU && position.numCoup == 3) position.evolution.malusJ = evolution.malusJ;
+    position.numCoup++;
+	return position;
+}

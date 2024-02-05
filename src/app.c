@@ -467,9 +467,18 @@ void joinGame(client_t *client, party_state_t state) {
             if(choix == 'o') {
                 handleResponse(requestReady(client));
             }
+            /*
             // On attend la réponse PARTY_STARTED
+            pthread_t * threadAffichage;
+            pthread_create(threadAffichage, NULL, afficherEnAttente, "En attente de la partie");*/
+
             aotp_response_t response;
             recv_data(client->socket, &response, (serialize_t) response2Struct);
+
+            // On arrête le thread d'affichage
+            //pthread_cancel(threadAffichage);
+
+
             handleResponse(response);
             break;
         

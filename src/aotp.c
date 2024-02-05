@@ -66,11 +66,7 @@ void playEvolution(socket_t *socket, aotp_request_t *requestData, list_client_t 
     newPosition = *position;
 
     // CHECK : On vérifie que l'évolution est valide (TODO) crée une fonction pour ça jouerCoupEvolution
-    if(position->trait == JAU && position->numCoup == 0) newPosition.evolution.bonusJ = evolution->bonusJ;
-    if(position->trait == ROU && position->numCoup == 1) newPosition.evolution.bonusR = evolution->bonusR;
-    if(position->trait == ROU && position->numCoup == 2) newPosition.evolution.malusR = evolution->malusR;
-    if(position->trait == JAU && position->numCoup == 3) newPosition.evolution.malusJ = evolution->malusJ;
-    position->numCoup++;
+    newPosition = jouerEvolution(*position, *evolution);
 
     // On envoie la nouvelle position à tous les clients
     *position = newPosition; // on met à jour la position

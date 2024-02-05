@@ -270,5 +270,13 @@ void afficherScore(score_t s);
 */
 int writePosition(position_t p);
 
+/**
+ * \fn void jouerEvolution(position_t p, evolution_t evolution)
+ * \brief joue les coups d'évolution
+ * \param position position actuelle
+ * \param evolution pions évolution
+*/
+position_t jouerEvolution(position_t position ,evolution_t evolution);
+
 #endif
 
