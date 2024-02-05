@@ -22,6 +22,8 @@ position_t hostPosition;
 list_party_t *parties = NULL; // Liste des parties en cours
 client_t *client = NULL; // Informations du client
 position_t position; // Position actuelle du client
+char *serverAddress;
+short serverPort;
 
 
 // Fonctions propre à l'interface
@@ -43,14 +45,14 @@ aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t ev
 void host(char *hostIp, short hostPort);
 
 // Requete vers le serveur d'enregistrement
-aotp_response_t createPartyReq(socket_t *socket, char *hostIp, short hostPort);
-aotp_response_t requestJoinParty(client_t *client, party_id_t partyId);
-aotp_response_t listPartyReq(socket_t *socket);
-aotp_response_t connReq(socket_t *socket, char *pseudo);
+aotp_response_t createPartyReq(char *hostIp, short hostPort);
+aotp_response_t listPartyReq();
+aotp_response_t connReq(char *pseudo);
 
 // Requete vers le serveur de jeu
 aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char destination);
 aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t evolution);
+aotp_response_t requestJoinParty(client_t *client, party_id_t partyId);
 
 //serveur de jeu 
 void jouerPartyHost(socket_t * jaune,socket_t* rouge );
@@ -60,8 +62,6 @@ socket_t *host_se, *host_sd; // Socket d'écoute et socket de dialogue
 
 int main(int argc, char *argv[]) {
     atexit(exitFunction);
-    char *serverAddress;
-    short serverPort;
     client = initClient(-1, "", CLIENT_UNKOWN, NULL);
     hostPosition = getPositionInitiale();
     position = getPositionInitiale();
@@ -72,10 +72,10 @@ int main(int argc, char *argv[]) {
     getPseudo(client->pseudo);
     system("clear");
     socket_t *clientSocket = connectToServer(serverAddress, serverPort);
-    response = connReq(clientSocket, client->pseudo);
+    response = connReq(client->pseudo);
     handleResponse(response);
 
-    response = listPartyReq(clientSocket);
+    response = listPartyReq();
     handleResponse(response);
 
     // Barre de chargement
@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
                 short hostPort;
                 COULEUR(RED);
                 promptHostIpPort(hostIp, &hostPort);
-                response = createPartyReq(clientSocket, hostIp, hostPort);
+                response = createPartyReq(hostIp, hostPort);
                 handleResponse(response);
                 
                 //TODO : jouer la partie 
@@ -207,7 +207,9 @@ void afficherParties() {
 
 }
 
-aotp_response_t createPartyReq(socket_t *socket, char *hostIp, short hostPort) {
+aotp_response_t createPartyReq(char *hostIp, short hostPort) {
+    socket_t *socket = connectToServer(serverAddress, serverPort);
+    
     aotp_request_t *request = createRequest(AOTP_CREATE_PARTY);
     request->client_id = client->id;
     strcpy(request->pseudo, client->pseudo);
@@ -218,11 +220,13 @@ aotp_response_t createPartyReq(socket_t *socket, char *hostIp, short hostPort) {
     send_data(socket, request, (serialize_t) struct2Request);
     aotp_response_t response;
     recv_data(socket, &response, (serialize_t) response2Struct);
-
+    free(request);
+    free(socket);
     return response;
 }
 
-aotp_response_t connReq(socket_t *socket, char *pseudo) {
+aotp_response_t connReq(char *pseudo) {
+    socket_t *socket = connectToServer(serverAddress, serverPort);
     // Envoi de la requête de connexion
     aotp_request_t *request = createRequest(AOTP_CONNECT);
     strcpy(request->pseudo, pseudo);
@@ -243,13 +247,15 @@ aotp_response_t connReq(socket_t *socket, char *pseudo) {
     }
     // Libération de la mémoire
     free(request);
+    free(socket);
 
     return response;
 }
 
 
-aotp_response_t listPartyReq(socket_t *socket) {
+aotp_response_t listPartyReq() {
     // Envoi de la requête de connexion
+    socket_t *socket = connectToServer(serverAddress, serverPort);
     aotp_request_t *request = createRequest(AOTP_LIST_PARTIES);
     request->client_id = client->id;
     send_data(socket, request, (serialize_t) struct2Request);
@@ -258,8 +264,10 @@ aotp_response_t listPartyReq(socket_t *socket) {
     aotp_response_t response;
     recv_data(socket, &response, (serialize_t) response2Struct);
 
-    // Vérification de la réponse
-    // TODO : Remplacer par un handler de réponse
+    // Libération de la mémoire
+    free(request);
+    free(socket);
+    
     return response;
 }
 
@@ -468,7 +476,7 @@ int handleResponse(aotp_response_t response_data) {
             client_state_t state = response_data.client_state;
             // On récupère la position
             position = *(response_data.position);
-            afficherPosition(position);
+            free(response_data.position);
             // Ecriture de la position dans le fichier json
             writePosition(position);
             gameLoop(client, state);
@@ -485,9 +493,7 @@ int handleResponse(aotp_response_t response_data) {
             printf("Réponse non gérée : %d\n", response_data.code);
             break;
     }
-
     return 0;
-
 }
 /**
  * \fn jouerPartyHost(socket_t * jaune,socket_t* rouge )

@@ -21,14 +21,10 @@ void *handleClient(void *arg) {
     socket_t *sd = (socket_t *) arg;
     aotp_request_t *request = malloc(sizeof(aotp_request_t));
     buffer_t *buffer = malloc(sizeof(buffer_t));
-    int stillConnected = 1;
-    // Reception de la requete
-    while(stillConnected) {
-        recv_data(sd, request, (serialize_t) request2Struct);
-        stillConnected = requestHandler(sd, request, &clients, &parties, NULL);
-    }
-    // Fermeture de la socket
     
+    recv_data(sd, request, (serialize_t) request2Struct);
+    requestHandler(sd, request, &clients, &parties, NULL);
+    // Fermeture de la socket
     freeSocket(sd);
     // Liberation de la memoire
     free(request);

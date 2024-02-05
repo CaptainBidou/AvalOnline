@@ -421,10 +421,8 @@ void response2Struct(char *buffer, aotp_response_t *response) {
             body = strtok_r(NULL, "\r\n", &saveptr);
         }
     }
-    printf("WTF : %s\n", body);
     // Si la ligne est "POSITION", on traite la position
     if (body != NULL && strncmp(body, "POSITION", strlen("POSITION")) == 0) {
-        printf("Traitement de la position\n");
         // On passe à la ligne suivante
         body = strtok_r(NULL, "\r\n", &saveptr);
 
