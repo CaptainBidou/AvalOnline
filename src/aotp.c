@@ -21,7 +21,7 @@ void sendPositionToClients(list_client_t *clients, position_t *position);
 */
 void playMove(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, position_t *position) {
     // On récupère le coup joué
-    coup_t *coup = requestData->coup;
+    coup_t coup = requestData->coup;
 
     // On récupère le client
     client_t *client = getClientById(*clients, requestData->client_id);
@@ -36,7 +36,7 @@ void playMove(socket_t *socket, aotp_request_t *requestData, list_client_t **cli
     }
 
     // On joue le coup
-    position_t newPosition = jouerCoup(*position, coup->origine, coup->destination);
+    position_t newPosition = jouerCoup(*position, coup.origine, coup.destination);
     if(newPosition.numCoup == position->numCoup) {
         sendResponse(socket, AOTP_ERR_CONNECT, NULL, NULL, 0, CLIENT_SPECTATOR);
     }
@@ -59,14 +59,14 @@ void playMove(socket_t *socket, aotp_request_t *requestData, list_client_t **cli
 */
 void playEvolution(socket_t *socket, aotp_request_t *requestData, list_client_t **clients, position_t *position) {
     // On récupère l'évolution jouée
-    evolution_t *evolution = requestData->evolution;
+    evolution_t evolution = requestData->evolution;
 
     // Nouvelle position (TODO : copyPosition)
     position_t newPosition;
     newPosition = *position;
 
     // CHECK : On vérifie que l'évolution est valide (TODO) crée une fonction pour ça jouerCoupEvolution
-    newPosition = jouerEvolution(*position, *evolution);
+    newPosition = jouerEvolution(*position, evolution);
 
     // On envoie la nouvelle position à tous les clients
     *position = newPosition; // on met à jour la position
@@ -217,7 +217,11 @@ void struct2Request(aotp_request_t *request, char *buffer)
     // écriture du port de l'hote
     if (request->host_port != 0) sprintf(buffer, "%shost_port %d\r\n", buffer, request->host_port);
 
-    // TODO : Ajouter les autres cas
+    // écriture du coup
+    if (isCoup(request->coup)) sprintf(buffer, "%scoup_t %c %c\r\n", buffer, request->coup.origine, request->coup.destination);
+
+    // écriture de l'évolution
+    if (isEvolution(request->evolution)) sprintf(buffer, "%sevolution_t %c %c %c %c\r\n", buffer, request->evolution.bonusJ, request->evolution.malusJ, request->evolution.bonusR, request->evolution.malusR);
 }
 
 /**
@@ -228,6 +232,10 @@ void struct2Request(aotp_request_t *request, char *buffer)
  */
 void request2Struct(char *buffer, aotp_request_t *request)
 {
+    if(strlen(buffer) == 0) {
+        request->action = AOTP_BAD_REQUEST;
+        return;
+    }
     // Copie du buffer dans une variable locale
     char *bufferCopy = malloc(strlen(buffer) * sizeof(char));
     char *saveptr;
@@ -246,6 +254,8 @@ void request2Struct(char *buffer, aotp_request_t *request)
         if (strncmp(body, "party_id_t", strlen("party_id_t")) == 0) sscanf(body, "party_id_t %d", &request->party_id);
         if (strncmp(body, "host_ip", strlen("host_ip")) == 0) sscanf(body, "host_ip %s", request->host_ip);
         if (strncmp(body, "host_port", strlen("host_port")) == 0) sscanf(body, "host_port %hd", &request->host_port);
+        if(strncmp(body, "coup_t", strlen("coup_t")) == 0) sscanf(body, "coup_t %c %c", &request->coup.origine, &request->coup.destination);
+        if(strncmp(body, "evolution_t", strlen("evolution_t")) == 0) sscanf(body, "evolution_t %c %c %c %c", &request->evolution.bonusJ, &request->evolution.malusJ, &request->evolution.bonusR, &request->evolution.malusR);
 
         // TODO : Ajouter les autres cas
         // Passe à la ligne suivante
@@ -517,6 +527,13 @@ void connectClientToHost(socket_t *socket, aotp_request_t *requestData, list_cli
 aotp_request_t *createRequest(AOTP_REQUEST action) {
     aotp_request_t *request = malloc(sizeof(aotp_request_t));
     request->action = action;
+    request->coup = NO_COUP;
+    request->evolution = NO_EVOLUTION;
+    request->client_id = 0;
+    request->party_id = 0;
+    request->host_port = 0;
+    request->host_ip[0] = '\0';
+    request->pseudo[0] = '\0';
     return request;
 }
 
@@ -606,4 +623,8 @@ void sendResponse(socket_t *socket, AOTP_RESPONSE code, list_party_t *parties, p
     initResponse(&response, code, parties, position, client_id, client_state);
     // Envoi de la reponse
     send_data(socket, &response, (serialize_t) struct2Response);
+}
+
+void freeRequest(aotp_request_t *request) {
+    free(request);
 }

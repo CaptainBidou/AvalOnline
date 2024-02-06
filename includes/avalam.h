@@ -82,6 +82,9 @@
 #endif
 
 
+#define NO_EVOLUTION (evolution_t) {255, 255, 255, 255}
+#define NO_COUP (coup_t) {255, 255}
+
 /**
  * \struct score_t
  * \brief Structure représentant le score d'une partie
@@ -287,6 +290,22 @@ position_t jouerEvolution(position_t position ,evolution_t evolution);
  * \see position_t
 */
 char estValide(position_t p, char origine, char destination);
+
+
+/**
+ * \fn isEvolution(evolution_t e)
+ * \brief Vérifie si une position est une position d'évol
+ * \param e evolution
+*/
+int isEvolution(evolution_t e);
+
+/**
+ * \fn int isCoup(coup_t c)
+ * \brief Vérifie si une position est une position d'évol
+ * \param 
+*/
+int isCoup(coup_t c);
+
 
 #endif
 

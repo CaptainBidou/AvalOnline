@@ -96,4 +96,11 @@ party_t *getPartyById(list_party_t *list, party_id_t id);
  */ 
 char *partyState2String(party_state_t state);
 
+/**
+ * \fn void freePartyList(list_party_t **head);
+ * \brief Fonction de liberation de la memoire allouee pour une liste de parties
+ * \param head Liste de parties
+ */
+void freePartyList(list_party_t **head);
+
 #endif

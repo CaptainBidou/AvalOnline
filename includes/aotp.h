@@ -67,6 +67,7 @@ typedef enum
     AOTP_NOK = 400, /*!< Code de retour NOK */
     AOTP_STRING_OVERCHARGED = 401, /*!< Code de retour chaine de caractere surchargee */
     AOTP_ERR_CONNECT = 402, /*!< Code de retour erreur de connexion */
+    AOTP_BAD_REQUEST = 403, /*!< Code de retour mauvaise requete */
 
 } AOTP_RESPONSE;    /*!< Enumeration des codes de retour du protocole */
 
@@ -82,8 +83,8 @@ typedef struct
     char pseudo[20];           /*!< Pseudo du client */
     char host_ip[16];          /*!< Adresse IP de l'hote */
     short host_port;           /*!< Port de l'hote */
-    coup_t *coup;              /*!< Coup a jouer */
-    evolution_t *evolution;    /*!< Evolution a jouer */
+    coup_t coup;              /*!< Coup a jouer */
+    evolution_t evolution;    /*!< Evolution a jouer */
     party_state_t party_state; /*!< Etat de la partie */
     party_id_t party_id;       /*!< Identifiant de la partie */
 } aotp_request_t;              /*!< Structure de requete du protocole */
@@ -200,5 +201,12 @@ void initRequest(AOTP_REQUEST action);
  * \param position Position a retourner (optionnel)
  */
 void sendResponse(socket_t *socket, AOTP_RESPONSE code, list_party_t *parties, position_t *position, int client_id, client_state_t client_state);
+
+/**
+ * \fn void freeRequest(aotp_request_t *request);
+ * \brief Fonction de liberation de la memoire allouee a une requete
+*/
+void freeRequest(aotp_request_t *request);
+
 
 #endif

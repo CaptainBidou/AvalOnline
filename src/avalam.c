@@ -302,5 +302,26 @@ position_t jouerEvolution(position_t position ,evolution_t evolution){
     if(position.trait == ROU && position.numCoup == 2) position.evolution.malusR = evolution.malusR;
     if(position.trait == JAU && position.numCoup == 3) position.evolution.malusJ = evolution.malusJ;
     position.numCoup++;
+	position.trait = (position.trait == JAU) ? ROU : JAU;
 	return position;
+}
+
+/**
+ * \fn isEvolution(evolution_t e)
+ * \brief Vérifie si une position est une position d'évol
+ * \param e evolution
+*/
+int isEvolution(evolution_t e) {
+	if (e.bonusJ != 255) return 0;
+	return 1;
+}
+
+/**
+ * \fn int isCoup(coup_t c)
+ * \brief Vérifie si une position est une position d'évol
+ * \param 
+*/
+int isCoup(coup_t c) {
+	if (c.origine != 255) return 0;
+	return 1;
 }

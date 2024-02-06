@@ -66,5 +66,5 @@ void exitFunction() {
     freeSocket(se);
     
     // Liberation de la memoire
-    freeListParty(parties);
+    freePartyList(&parties);
 }

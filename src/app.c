@@ -256,7 +256,7 @@ aotp_response_t createPartyReq(char *hostIp, short hostPort) {
     send_data(socket, request, (serialize_t) struct2Request);
     aotp_response_t response;
     recv_data(socket, &response, (serialize_t) response2Struct);
-    free(request);
+    freeRequest(request);
     free(socket);
     return response;
 }
@@ -288,7 +288,7 @@ aotp_response_t connReq(char *pseudo) {
         
     }
     // Libération de la mémoire
-    free(request);
+    freeRequest(request);
     free(socket);
 
     return response;
@@ -311,7 +311,7 @@ aotp_response_t listPartyReq() {
     recv_data(socket, &response, (serialize_t) response2Struct);
 
     // Libération de la mémoire
-    free(request);
+    freeRequest(request);
     free(socket);
     
     return response;
@@ -376,8 +376,8 @@ aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char 
     // Envoi de la requête de connexion
     aotp_request_t *request = createRequest(AOTP_SEND_MOVE);
     request->client_id = client->id;
-    request->coup->origine = origine;
-    request->coup->destination = destination;
+    request->coup.origine = origine;
+    request->coup.destination = destination;
     send_data(client->socket, request, (serialize_t) struct2Request);
 
     // Réception de la réponse
@@ -385,7 +385,7 @@ aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char 
     recv_data(client->socket, &response, (serialize_t) response2Struct);
 
     // Libération de la mémoire
-    free(request);
+    freeRequest(request);
 
     return response;
 }
@@ -402,7 +402,7 @@ aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t ev
     // Envoi de la requête de connexion
     aotp_request_t *request = createRequest(AOTP_SEND_EVOLUTION);
     request->client_id = client->id;
-    request->evolution = &evolution;
+    request->evolution = evolution;
     send_data(client->socket, request, (serialize_t) struct2Request);
 
     // Réception de la réponse
@@ -410,7 +410,7 @@ aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t ev
     recv_data(client->socket, &response, (serialize_t) response2Struct);
 
     // Libération de la mémoire
-    free(request);
+    freeRequest(request);
 
     return response;
 }
@@ -534,11 +534,13 @@ int handleResponse(aotp_response_t response_data) {
             myParty = response_data.parties->party;
             client->state = response_data.client_state;
             // TODO : remplacer par un thread pour que l'host puisse continuer à jouer
-            
-            pthread_t * threadHost;
-            pthread_create(threadHost, NULL, host, myParty);
+            /*
+            pthread_t threadHost;
+            pthread_create(&threadHost, NULL, (void *)host, myParty);
+            printf("Connexion à la partie en cours... %s %d\n", myParty->host_ip, myParty->host_port);
             client->socket = connectToServer(myParty->host_ip, myParty->host_port);
-            
+            */
+            host(myParty);
             handleResponse(requestJoinParty(client,myParty->id));
             
 
@@ -610,7 +612,7 @@ aotp_response_t requestReady(client_t *client) {
     aotp_response_t response;
     recv_data(client->socket, &response, (serialize_t) response2Struct);
     
-    free(request);
+    freeRequest(request);
     return response;
 }
 
