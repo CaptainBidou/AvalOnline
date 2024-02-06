@@ -22,10 +22,17 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@gcc -c $< -o $@ -I$(INCLUDE_DIR) 
 
 # Regle de compilation .o -> .exe
-$(BIN_DIR)/%: $(OBJ_DIR)/%.o $(OBJ_DIR)/libInet.a $(OBJ_DIR)/mysyscall.o
+$(BIN_DIR)/server: $(OBJ_DIR)/server.o $(OBJ_DIR)/libInet.a $(OBJ_DIR)/mysyscall.o
 	@mkdir -p $(BIN_DIR)
 	@echo "Edition de liens de $<"
 	@gcc $^ -o $@ $(LD_FLAGS) -g -I$(INCLUDE_DIR) -L$(OBJ_DIR) -lInet -lpthread
+	@echo "Creation d'un lien symbolique vers $@"
+	@ln -sf $@ .
+
+$(BIN_DIR)/app: $(OBJ_DIR)/app.o $(OBJ_DIR)/libInet.a $(OBJ_DIR)/mysyscall.o $(OBJ_DIR)/libavalapp.a
+	@mkdir -p $(BIN_DIR)
+	@echo "Edition de liens de $<"
+	@gcc $^ -o $@ $(LD_FLAGS) -g -I$(INCLUDE_DIR) -L$(OBJ_DIR) -lInet -lpthread -lavalapp
 	@echo "Creation d'un lien symbolique vers $@"
 	@ln -sf $@ .
 
@@ -49,6 +56,16 @@ $(OBJ_DIR)/aotp.o: $(SRC_DIR)/aotp.c $(INCLUDE_DIR)/aotp.h
 	@mkdir -p $(OBJ_DIR)
 	@echo "Compilation de $<"
 	@gcc -c $< -o $@ -I$(INCLUDE_DIR) -DAOTP_DEBUG
+
+$(OBJ_DIR)/design.o: $(SRC_DIR)/design.c $(INCLUDE_DIR)/design.h
+	@mkdir -p $(OBJ_DIR)
+	@echo "Compilation de $<"
+	@gcc -c $< -o $@ -I$(INCLUDE_DIR)
+
+$(OBJ_DIR)/libavalapp.a: $(OBJ_DIR)/design.o 
+	@mkdir -p $(OBJ_DIR)
+	@echo "Compilation de $<"
+	@ar -crs $@ $^
 
 $(OBJ_DIR)/client.o: $(SRC_DIR)/client.c $(INCLUDE_DIR)/client.h
 	@mkdir -p $(OBJ_DIR)

@@ -59,6 +59,8 @@ typedef struct client_node {
  * \param id Identifiant du client
  * \param pseudo Pseudo du client
  * \param socket Socket du client
+ * \param state Etat du client
+ * \return Client initialise
  */
 client_t *initClient(int id, char *pseudo, client_state_t state, socket_t *socket);
 
@@ -82,7 +84,8 @@ void removeClient(list_client_t **head, int client_id);
 /**
  * \fn list_client_t *initClientList(client_t *client);
  * \brief Fonction d'initialisation d'une liste de clients
- * \param list Liste de clients a initialiser
+ * \param List Liste de clients
+ * \return Liste de clients initialisée
  */
 list_client_t *initClientList(client_t *client);
 
@@ -94,15 +97,6 @@ list_client_t *initClientList(client_t *client);
  */
 int generateClientId();
 
-
-/**
- * \fn short generateClientId() 
- * \brief Fonction de generation d'un identifiant unique pour un client
- * \return Identifiant unique
- */
-int generateClientId();
-
-
 /**
  * \fn client_t *getClientById(list_client_t *list, int id);
  * \brief Fonction de recuperation d'un client par son identifiant
@@ -113,7 +107,7 @@ int generateClientId();
 client_t *getClientById(list_client_t *list, int id);
 
 /**
- * int is2PlayersReady(list_client_t *clients);
+ * \fn int is2PlayersReady(list_client_t *clients);
  * \brief Fonction de vérification de l'état des joueurs
  * \param clients Liste des clients
  * \return 1 si les deux joueurs sont prêts, 0 sinon

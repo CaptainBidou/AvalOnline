@@ -10,6 +10,7 @@
  * @param ip Adresse IP du destinataire.
  * @param port Port du destinataire.
  * @see send_data
+ * @note Utilisation pour les sockets UDP
 */
 void send_data_DGRAM(socket_t *socket, generic_t data, serialize_t serializeFunc, char *ip, int port) {
     buffer_t buff;

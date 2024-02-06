@@ -149,7 +149,7 @@ void sendToSocket(socket_t *sock, char *buff, char *ip, int port);
  * \fn    int acceptClient(int sock);
  * \brief Acceptation d'un client
  * \param sock : file descriptor de la socket
- * 
+ * \return file descriptor de la socket du client accepté
 */
 socket_t *acceptClient(socket_t *sock);
 

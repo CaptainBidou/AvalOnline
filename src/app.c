@@ -1,64 +1,166 @@
+/* ------------------------------------------------------------------------ */
+/*                   E N T Ê T E S    S T A N D A R D S                     */
+/* ------------------------------------------------------------------------ */
 #include "aotp.h"
 #include "mysyscall.h"
+#include "design.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
 
-#define COULEUR(i) printf("\e[%dm", i)
-#define COLOR_RESET printf("\e[0m")
-#define RED 31
-#define GREEN 32
-#define BLUE 34
-
-// Variable globale
-
-///  Variable en tant que host
+/* ------------------------------------------------------------------------ */
+/*                   v A R I A B L E S  G L O B A L E S                     */
+/* ------------------------------------------------------------------------ */
+///  Variables en tant que host
 party_t *myParty = NULL; // Informations de la partie de l'utilisateur
 list_client_t *players = NULL; // Liste des joueurs connectés
 position_t hostPosition;
 
-/// Variable en tant que client
+/// Variables en tant que client
 list_party_t *parties = NULL; // Liste des parties en cours
 client_t *client = NULL; // Informations du client
 position_t position; // Position actuelle du client
+
 char *serverAddress;
 short serverPort;
 
+socket_t *host_se= NULL , *host_sd =NULL; // Socket d'écoute et socket de dialogue
 
-// Fonctions propre à l'interface
-void clearBuffer();
-void menu();
-void loadingBar();
-void afficherEnAttente(char * message);
-void getPseudo(char *pseudo);
-void afficherParties();
-void promptHostIpPort(char *hostIp, short *hostPort);
-void playGame(client_t *client, party_state_t state);
+/* ------------------------------------------------------------------------ */
+/*   P R O T O T Y P E S   D E   F O N C T I O N S  S T A N D A R D S       */
+/* ------------------------------------------------------------------------ */
 void exitFunction(); // Fonction de sortie
-int handleResponse(aotp_response_t response_data);
+
+
+/* ------------------------------------------------------------------------ */
+/*   P R O T O T Y P E S   D E   F O N C T I O N S  J E U X  C L I E N T    */
+/* ------------------------------------------------------------------------ */
+/**
+ * \fn void playGame(client_t *client)
+ * \brief Fonction de déroulement du jeu pour un client
+ * \param client Informations du client
+ * 
+ * Cette fonction fait une requête pour connaitre l'état de la partie
+ * Si l'état est WAITING, on demande au client s'il est prêt
+ * Si l'état est PLAYING, le client est spectateur et se mets dans une boucle d'attente de la position
+*/
+void joinGame(client_t *client, party_state_t state);
+
+/**
+* \fn void gameLoop(client_t *client, client_state_t state)
+* \brief Boucle de jeu
+* \param client Informations du client
+* \param state Etat du client
+*/
 void gameLoop(client_t *client, client_state_t state);
-evolution_t promptEvolution(int numCoup);
-aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t evolution);
 
-// Thread du serveur d'hébergement
-void host(char *hostIp, short hostPort);
 
-// Requete vers le serveur d'enregistrement
+
+
+/* ------------------------------------------------------------------------------ */
+/*   P R O T O T Y P E S   D E   F O N C T I O N S  R E Q  F R O M  C L I E N T   */
+/* ------------------------------------------------------------------------------ */
+
+
+
+// Requetes vers le serveur d'enregistrement
+
+/**
+* \fn void createPartyReq(char *hostIp, short hostPort)
+* \brief Crée une partie
+* \param hostIp Adresse IP de l'hôte
+* \param hostPort Port de l'hôte
+* \return Réponse du serveur
+*/
 aotp_response_t createPartyReq(char *hostIp, short hostPort);
+
+
+/**
+* \fn aotp_response_t listPartyReq()
+* \brief Requête de liste des parties
+* \return Réponse du serveur
+*/
 aotp_response_t listPartyReq();
+
+/**
+* \fn aotp_response_t connReq(char *pseudo)
+* \brief Requête de connexion
+* \param pseudo Pseudo du client
+* \return Réponse du serveur
+*/
 aotp_response_t connReq(char *pseudo);
 
-// Requete vers le serveur de jeu
+
+/**************************************************************************************************/
+// Requetes vers le serveur de jeu
+
+/**
+* \fn aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char destination)
+* \brief Requête pour jouer un coup classique
+* \param client Informations du client
+* \param p Position actuelle
+* \param origine Case d'origine
+* \param destination Case de destination
+* \return Réponse du serveur
+*/
 aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char destination);
+
+/**
+* \fn aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t evolution)
+* \brief Requête pour jouer un coup évolution
+* \param client Informations du client
+* \param p Position actuelle
+* \param evolution Evolution
+* \return Réponse du serveur
+*/
 aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t evolution);
+
+/**
+* \fn aotp_response_t requestJoinParty(client_t *client, party_id_t partyId)
+* \brief Requête pour rejoindre une partie
+* \param client Informations du client
+* \param partyId Identifiant de la partie
+* \return Réponse du serveur
+*/
 aotp_response_t requestJoinParty(client_t *client, party_id_t partyId);
 
+
+/* ------------------------------------------------------------------------------ */
+/*   P R O T O T Y P E S   D E   F O N C T I O N S  R E P  T O  C L I E N T       */
+/* ------------------------------------------------------------------------------ */
+/**
+* \fn int handleResponse(aotp_response_t response_data)
+* \brief Gestion des réponses
+* \param response_data Réponse du serveur
+* \return 1 si la réponse a été gérée, 0 sinon
+*/
+int handleResponse(aotp_response_t response_data);
+
+
+/* --------------------------------------------------------------*/
+/*   P R O T O T Y P E S   D E   F O N C T I O N S  H O S T      */
+/* --------------------------------------------------------------*/
 //serveur de jeu 
-void jouerPartyHost(socket_t * jaune,socket_t* rouge );
+/**
+* \fn aotp_response_t requestReady(client_t *client)
+* \brief Requête pour indiquer que le client est prêt
+* \param client Informations du client
+* \return Réponse du serveur
+*/
 aotp_response_t requestReady(client_t *client);
 
-socket_t *host_se=NULL , *host_sd =NULL; // Socket d'écoute et socket de dialogue
+// Thread du serveur d'hébergement
+/**
+* \fn void host(char *hostIp, short hostPort)
+* \brief Héberge une partie
+* \param hostIp Adresse IP de l'hôte
+* \param hostPort Port de l'hôte
+*/
+void host(party_t *myParty);
+
+
+
 
 int main(int argc, char *argv[]) {
     atexit(exitFunction);
@@ -86,7 +188,7 @@ int main(int argc, char *argv[]) {
         COULEUR(RED);
         printf("\n\nBienvenue \e[%dm%s, \e[%dmvoici la liste des parties en cours !\n", GREEN, client->pseudo, RED);
         // Affichage des parties en cours
-        afficherParties();
+        afficherParties(parties);
         menu();
         COULEUR(GREEN);
         char choix = fgetc(stdin);
@@ -132,101 +234,7 @@ int main(int argc, char *argv[]) {
     }
 }
 
-/**
-* \fn void clearBuffer()
-* \brief Vide le buffer
-*/
-void clearBuffer()
-{
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF)
-        ;
-}
 
-/**
-* \fn void menu()
-* \brief Affiche le menu client
-*/
-void menu() {
-    COULEUR(RED);
-    printf("\n\nQue voulez-vous faire ?\n");
-    printf("1. Créer une partie\n");
-    printf("2. Rejoindre une partie\n");
-    printf("3. Quitter\n");
-    COLOR_RESET;
-}
-
-/**
-* \fn void loadingBar()
-* \brief Affiche une barre de chargement totalement inutile
-*/
-void loadingBar()
-{
-    // Barre de chargement
-    COULEUR(BLUE);
-    printf("\nRécupération des données en cours...\n");
-    for (int i = 0; i < 100; i++) {
-        printf("\r");
-        printf("[");
-        for (int j = 0; j < i; j++) printf("=");
-
-        for (int j = 0; j < 100 - i; j++) printf(" ");
-        printf("] %d%%", i);
-        fflush(stdout);
-        usleep(1000);
-    }
-    printf("\n");
-    COLOR_RESET;
-}
-
-/**
-* \fn void getPseudo(char *pseudo)
-* \brief Demande le pseudo du client
-* \param pseudo Pseudo du client
-*/
-void getPseudo(char *pseudo)
-{
-    system("clear");
-    COULEUR(RED);
-    printf("------ Bienvenue sur AvalOnline ! ------ \n\n");
-    COLOR_RESET;
-    COULEUR(RED);
-    printf("Veuillez entrer votre pseudo : ");
-    COLOR_RESET;
-    COULEUR(GREEN);
-    fgets(pseudo, 20, stdin);
-    COLOR_RESET;
-    // Suppression du \n à la fin du pseudo
-    int i = 0;
-    while (pseudo[i] != '\n')
-    {
-        i++;
-    }
-    pseudo[i] = '\0';
-}
-
-/**
-* \fn void afficherParties()
-* \brief Affiche les parties en cours
-*/
-void afficherParties() {
-    printf("\n\nParties en cours :\n");
-    // afficher les parties de la liste
-    if(parties == NULL) {
-        COULEUR(BLUE);
-        printf("\e[0mAucune partie en cours\n");
-        return;
-    }
-
-    list_party_t *current = parties;
-    while(current != NULL) {
-        COULEUR(BLUE);
-        char *status = partyState2String(current->party->state);
-        printf("%3d. \e[0m Partie de %-15s %s\n", current->party->id, current->party->host_pseudo, status);
-        current = current->next;
-    }
-
-}
 
 /**
 * \fn void createPartyReq(char *hostIp, short hostPort)
@@ -259,7 +267,6 @@ aotp_response_t createPartyReq(char *hostIp, short hostPort) {
 * \param pseudo Pseudo du client
 * \return Réponse du serveur
 */
-
 aotp_response_t connReq(char *pseudo) {
     socket_t *socket = connectToServer(serverAddress, serverPort);
     // Envoi de la requête de connexion
@@ -341,8 +348,8 @@ void *handleClient(void *arg) {
 * \param hostIp Adresse IP de l'hôte
 * \param hostPort Port de l'hôte
 */
-void host(char *hostIp, short hostPort) {
-    host_se = createListeningSocket(hostIp, hostPort, DEFAULT_AOTP_MAX_CLIENTS);
+void host(party_t *myParty) {
+    host_se = createListeningSocket(myParty->host_ip, myParty->host_port, DEFAULT_AOTP_MAX_CLIENTS);
     hostPosition = getPositionInitiale();
     
     while(1) {
@@ -467,10 +474,10 @@ void joinGame(client_t *client, party_state_t state) {
             if(choix == 'o') {
                 handleResponse(requestReady(client));
             }
-            /*
+            
             // On attend la réponse PARTY_STARTED
-            pthread_t * threadAffichage;
-            pthread_create(threadAffichage, NULL, afficherEnAttente, "En attente de la partie");*/
+            //pthread_t * threadAffichage;
+            //pthread_create(threadAffichage, NULL, afficherEnAttente, "En attente de la partie");
 
             aotp_response_t response;
             recv_data(client->socket, &response, (serialize_t) response2Struct);
@@ -490,26 +497,7 @@ void joinGame(client_t *client, party_state_t state) {
     }
 }
 
-/**
-* \fn void promptHostIpPort(char *hostIp, short *hostPort)
-* \brief Demande à l'utilisateur l'adresse IP et le port pour héberger une partie
-* \param hostIp Adresse IP de l'hôte
-* \param hostPort Port de l'hôte
-*/
-void promptHostIpPort(char *hostIp, short *hostPort) {
-    COULEUR(RED);
-    printf("Veuillez entrer l'adresse IP de votre machine : ");
-    COLOR_RESET;
-    COULEUR(GREEN);
-    fgets(hostIp, 16, stdin);
-    COLOR_RESET;
-    COULEUR(RED);
-    printf("Veuillez entrer le port sur lequel vous souhaitez héberger la partie : ");
-    COLOR_RESET;
-    COULEUR(GREEN);
-    scanf("%hd", hostPort);
-    COLOR_RESET;
-}
+
 
 /**
 * \fn void exitFunction()
@@ -546,7 +534,15 @@ int handleResponse(aotp_response_t response_data) {
             myParty = response_data.parties->party;
             client->state = response_data.client_state;
             // TODO : remplacer par un thread pour que l'host puisse continuer à jouer
-            host(myParty->host_ip, myParty->host_port);
+            
+            pthread_t * threadHost;
+            pthread_create(threadHost, NULL, host, myParty);
+            client->socket = connectToServer(myParty->host_ip, myParty->host_port);
+            
+            handleResponse(requestJoinParty(client,myParty->id));
+            
+
+
             return 1;
         case AOTP_PARTY_JOINED:
             // On change l'état du client
@@ -596,15 +592,6 @@ int handleResponse(aotp_response_t response_data) {
             break;
     }
     return 0;
-}
-/**
- * \fn jouerPartyHost(socket_t * jaune,socket_t* rouge )
- * \brief joue une partie en tant qu'hôte
- * \param jaune Socket du joueur jaune
- * \param rouge Socket du joueur rouge
-*/
-void jouerPartyHost(socket_t * jaune,socket_t* rouge ) {
-
 }
 
 /**
@@ -656,12 +643,12 @@ void gameLoop(client_t *client, client_state_t state) {
     printf("[DEBUG] selectionner le fichier web/js/avalonline-%d.js\n", getpid());
     aotp_response_t response;
     int successResponse = 0;
-    while(1) {
+    while(1) {//TOMAS: boucle infinie - il faut pas plutot mettre dès qu'on a plus de coups à jouer ? 
         printf("[DEBUG] Trait : %d State : %d\n", position.trait, state);
         if(state == position.trait) {
             char origine, destination;
             if(position.numCoup <= 3) {
-                evolution_t evolution = promptEvolution(position.numCoup);
+                evolution_t evolution = promptEvolution(position.numCoup, position);
                 response = jouerEvolutionReq(client, position, evolution);
             }
             else {
@@ -689,55 +676,5 @@ void gameLoop(client_t *client, client_state_t state) {
 }
 
 
-/**
-* \fn evolution_t promptEvolution(int numCoup)
-* \brief Demande à l'utilisateur de choisir une évolution
-* \param numCoup Numéro du coup
-* \return Evolution
-*/
-evolution_t promptEvolution(int numCoup) {
-    evolution_t evolution = {0, 0, 0, 0};
-    COULEUR(RED);
-    switch (numCoup) {
-        case 0:
-            printf("Veuillez choisir le bonus jaune : ");
-            scanf("%c", &position.evolution.bonusJ);
-        break;
 
-        case 1:
-            printf("Veuillez choisir le bonus rouge : ");
-            scanf("%c", &position.evolution.malusJ);
-        break;
 
-        case 2:
-            printf("Veuillez choisir le malus rouge : ");
-            scanf("%c", &position.evolution.bonusR);
-        break;
-
-        case 3:
-            printf("Veuillez choisir le malus jaune : ");
-            scanf("%c", &position.evolution.malusR);
-        break;
-    }
-    COLOR_RESET;
-    return evolution;
-}
-
-/**
-* \fn void afficherEnAttente(char * message)
-* \brief Affiche un message avec une animation de chargement
-* \param message Message à afficher
-*/
-void afficherEnAttente(char * message) {
-    char animation[] = {'|', '/', '-', '\\'};
-    int i = 0;
-    system("clear");
-    printf("\033[1;31m"); // Changement de couleur du texte en rouge
-    
-    while (1) {
-        printf("\r%s %c ",message, animation[i]);
-        fflush(stdout); // Rafraîchissement de la sortie standard
-        usleep(200000); // Pause de 200 millisecondes (0.2 seconde)
-        i = (i + 1) % 4; // Pour faire tourner l'animation
-    }
-}
