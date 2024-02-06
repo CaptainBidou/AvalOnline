@@ -62,7 +62,12 @@ $(OBJ_DIR)/design.o: $(SRC_DIR)/design.c $(INCLUDE_DIR)/design.h
 	@echo "Compilation de $<"
 	@gcc -c $< -o $@ -I$(INCLUDE_DIR)
 
-$(OBJ_DIR)/libavalapp.a: $(OBJ_DIR)/design.o 
+$(OBJ_DIR)/req.o: $(SRC_DIR)/req.c $(INCLUDE_DIR)/req.h
+	@mkdir -p $(OBJ_DIR)
+	@echo "Compilation de $<"
+	@gcc -c $< -o $@ -I$(INCLUDE_DIR)
+
+$(OBJ_DIR)/libavalapp.a: $(OBJ_DIR)/design.o $(OBJ_DIR)/req.o
 	@mkdir -p $(OBJ_DIR)
 	@echo "Compilation de $<"
 	@ar -crs $@ $^
