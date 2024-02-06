@@ -55,5 +55,8 @@ void exitFunction() {
     printf("Fermeture du serveur\n");
 
     // Fermeture de la socket
+    freeSocket(se);
+    
     // Liberation de la memoire
+    freeListParty(parties);
 }
