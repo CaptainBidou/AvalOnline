@@ -218,10 +218,11 @@ void struct2Request(aotp_request_t *request, char *buffer)
     if (request->host_port != 0) sprintf(buffer, "%shost_port %d\r\n", buffer, request->host_port);
 
     // écriture du coup
-    if (isCoup(request->coup)) sprintf(buffer, "%scoup_t %c %c\r\n", buffer, request->coup.origine, request->coup.destination);
+    if (isCoup(request->coup)) sprintf(buffer, "%scoup_t %d %d\r\n", buffer, (int) request->coup.origine, (int) request->coup.destination);
 
     // écriture de l'évolution
-    if (isEvolution(request->evolution)) sprintf(buffer, "%sevolution_t %c %c %c %c\r\n", buffer, request->evolution.bonusJ, request->evolution.malusJ, request->evolution.bonusR, request->evolution.malusR);
+    printf("evolution : %d %d %d %d\n", (int)request->evolution.bonusJ, (int)request->evolution.malusJ, (int)request->evolution.bonusR, (int)request->evolution.malusR);
+    if (isEvolution(request->evolution)) sprintf(buffer, "%sevolution_t %d %d %d %d\r\n", buffer, (int)request->evolution.bonusJ, (int)request->evolution.malusJ, (int)request->evolution.bonusR, (int)request->evolution.malusR);
 }
 
 /**
@@ -236,6 +237,8 @@ void request2Struct(char *buffer, aotp_request_t *request)
         request->action = AOTP_BAD_REQUEST;
         return;
     }
+    int bonusJ, malusJ, bonusR, malusR;
+    int origine, destination;
     // Copie du buffer dans une variable locale
     char *bufferCopy = malloc(strlen(buffer) * sizeof(char));
     char *saveptr;
@@ -254,8 +257,18 @@ void request2Struct(char *buffer, aotp_request_t *request)
         if (strncmp(body, "party_id_t", strlen("party_id_t")) == 0) sscanf(body, "party_id_t %d", &request->party_id);
         if (strncmp(body, "host_ip", strlen("host_ip")) == 0) sscanf(body, "host_ip %s", request->host_ip);
         if (strncmp(body, "host_port", strlen("host_port")) == 0) sscanf(body, "host_port %hd", &request->host_port);
-        if(strncmp(body, "coup_t", strlen("coup_t")) == 0) sscanf(body, "coup_t %c %c", &request->coup.origine, &request->coup.destination);
-        if(strncmp(body, "evolution_t", strlen("evolution_t")) == 0) sscanf(body, "evolution_t %c %c %c %c", &request->evolution.bonusJ, &request->evolution.malusJ, &request->evolution.bonusR, &request->evolution.malusR);
+        if(strncmp(body, "coup_t", strlen("coup_t")) == 0) {
+            sscanf(body, "coup_t %d %d", &origine, &destination);
+            request->coup.origine = (char) origine;
+            request->coup.destination = (char) destination;
+        }
+        if(strncmp(body, "evolution_t", strlen("evolution_t")) == 0) {
+            sscanf(body, "evolution_t %d %d %d %d", &bonusJ, &malusJ, &bonusR, &malusR);
+            request->evolution.bonusJ = (char) bonusJ;
+            request->evolution.malusJ = (char) malusJ;
+            request->evolution.bonusR = (char) bonusR;
+            request->evolution.malusR = (char) malusR;
+        }
 
         // TODO : Ajouter les autres cas
         // Passe à la ligne suivante

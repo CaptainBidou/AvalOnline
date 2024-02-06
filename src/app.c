@@ -56,13 +56,9 @@ void joinGame(client_t *client, party_state_t state);
 void gameLoop(client_t *client, client_state_t state);
 
 
-
-
 /* ------------------------------------------------------------------------------ */
 /*   P R O T O T Y P E S   D E   F O N C T I O N S  R E Q  F R O M  C L I E N T   */
 /* ------------------------------------------------------------------------------ */
-
-
 
 // Requetes vers le serveur d'enregistrement
 
@@ -163,6 +159,7 @@ void host(party_t *myParty);
 
 
 int main(int argc, char *argv[]) {
+    install_signal_handler(SIGINT, exitFunction, 0);
     atexit(exitFunction);
     client = initClient(-1, "", CLIENT_UNKOWN, NULL);
     hostPosition = getPositionInitiale();
@@ -426,10 +423,10 @@ aotp_response_t requestJoinParty(client_t *client, party_id_t partyId) {
     // Récupération de la partie
     party_t *party = getPartyById(parties, partyId);
     if(party == NULL) {
+        // TODO : Gérer l'erreur
         COULEUR(RED);
         printf("ERREUR : La partie n'existe pas !\n");
         COLOR_RESET;
-        return;
     }
     // Création de la socket
     client->socket = connectToServer(party->host_ip, party->host_port);
@@ -507,10 +504,12 @@ void exitFunction() {
     // Envoi de la requête de déconnexion au serveur d'enregistrement
     
     //je supprime les socket
-    freeSocket(client->socket);
+    if(client != NULL) {
+        freeSocket(client->socket);
+        free(client);
+    }
     freeSocket(host_se);
-
-    // Libération de la mémoire
+    printf("Fermeture du programme\n");
 }
 
 /**
@@ -648,7 +647,7 @@ void gameLoop(client_t *client, client_state_t state) {
     while(1) {//TOMAS: boucle infinie - il faut pas plutot mettre dès qu'on a plus de coups à jouer ? 
         printf("[DEBUG] Trait : %d State : %d\n", position.trait, state);
         if(state == position.trait) {
-            char origine, destination;
+            int origine, destination;
             if(position.numCoup <= 3) {
                 evolution_t evolution = promptEvolution(position.numCoup, position);
                 response = jouerEvolutionReq(client, position, evolution);
@@ -658,16 +657,16 @@ void gameLoop(client_t *client, client_state_t state) {
                 printf("Veuillez entrer le numéro de la case d'origine : ");
                 COLOR_RESET;
                 COULEUR(GREEN);
-                scanf("%c", &origine);
+                scanf("%d", &origine);
                 clearBuffer();
                 COULEUR(RED);
                 printf("Veuillez entrer le numéro de la case de destination : ");
                 COLOR_RESET;
                 COULEUR(GREEN);
-                scanf("%c", &destination);
+                scanf("%d", &destination);
                 clearBuffer();
                 COLOR_RESET;
-                aotp_response_t response = jouerCoupReq(client, position, origine, destination);
+                aotp_response_t response = jouerCoupReq(client, position, (char) origine, (char) destination);
             }
         }else {
             recv_data(client->socket, &response, (serialize_t) response2Struct);

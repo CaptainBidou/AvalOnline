@@ -34,12 +34,12 @@ typedef enum
     AOTP_CONNECT = 200,      /*!< Requete de connexion */
     AOTP_DISCONNECT,         /*!< Requete de deconnexion */
     AOTP_CREATE_PARTY,       /*!< Requete de creation de partie */
-    AOTP_JOIN_PARTY,         /*!< Requete de connexion a une partie */
     AOTP_LIST_PARTIES,       /*!< Requete de liste des parties */
     AOTP_UPDATE_PARTY_STATE, /*!< Requete de mise a jour de l'etat d'une partie */
 
     // Les requetes vers un hote de partie
     AOTP_CONNECT_TO_PARTY = 300, /*!< Requete de connexion a une partie */
+    AOTP_JOIN_PARTY,            /*!< Requete de connexion a une partie */
     AOTP_SET_READY,              /*!< Requete pour changer d'etat en pret */
     AOTP_SEND_MOVE,              /*!< Requete pour envoyer un coup */
     AOTP_SEND_EVOLUTION,         /*!< Requete pour envoyer un coup d'evolution */

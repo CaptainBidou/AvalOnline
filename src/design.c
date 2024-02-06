@@ -143,26 +143,31 @@ void afficherEnAttente(char * message) {
 */
 evolution_t promptEvolution(int numCoup, position_t position) {
     evolution_t evolution = {0, 0, 0, 0};
+    int numCase;
     COULEUR(RED);
     switch (numCoup) {
         case 0:
             printf("Veuillez choisir le bonus jaune : ");
-            scanf("%c", &position.evolution.bonusJ);
+            scanf("%d", &numCase);
+            evolution.bonusJ = (char) numCase;
         break;
 
         case 1:
             printf("Veuillez choisir le bonus rouge : ");
-            scanf("%c", &position.evolution.malusJ);
+            scanf("%d", &numCase);
+            evolution.bonusR = (char) numCase;
         break;
 
         case 2:
             printf("Veuillez choisir le malus rouge : ");
-            scanf("%c", &position.evolution.bonusR);
+            scanf("%d", &numCase);
+            evolution.malusR = (char) numCase;
         break;
 
         case 3:
             printf("Veuillez choisir le malus jaune : ");
-            scanf("%c", &position.evolution.malusR);
+            scanf("%d", &numCase);
+            evolution.malusJ = (char) numCase;
         break;
     }
     COLOR_RESET;

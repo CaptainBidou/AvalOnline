@@ -63,8 +63,8 @@
 var position = [];
 
 
-var filename="./js/avalonline.json";
-var refreshtime=1;
+var filename="./js/avalonline1.js";
+var refreshtime=100;
 var couleurs = ["aucun","jaune","rouge"];
 var colrefs = []; 
 var evolution = {bonusJ:false, malusJ:false, bonusR:false, malusR:false}; 
@@ -121,6 +121,8 @@ $(document).ready(function(){
 		$(this).animate({opacity: 0.25},1000, function(){
 			$(this).animate({opacity: 1});
 		});
+
+		getJson();
 	});
 
 	$("#refreshtime").change(function (){
@@ -179,7 +181,7 @@ function traiterJson(oRep){
 	
 	showEvolution();
 
-	window.setTimeout(refresh,refreshtime*1000);
+	window.setTimeout(refresh,refreshtime);
 }
 
 function refresh() {

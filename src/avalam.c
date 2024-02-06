@@ -312,7 +312,11 @@ position_t jouerEvolution(position_t position ,evolution_t evolution){
  * \param e evolution
 */
 int isEvolution(evolution_t e) {
-	if (e.bonusJ != 255) return 0;
+	if (e.bonusJ == -1) return 0;
+	if(e.bonusR == -1) return 0;
+	if(e.malusJ == -1) return 0;
+	if(e.malusR == -1) return 0;
+
 	return 1;
 }
 
@@ -322,6 +326,7 @@ int isEvolution(evolution_t e) {
  * \param 
 */
 int isCoup(coup_t c) {
-	if (c.origine != 255) return 0;
+	if (c.origine == -1) return 0;
+	if(c.destination == -1) return 0;
 	return 1;
 }

@@ -82,7 +82,7 @@
 #endif
 
 
-#define NO_EVOLUTION (evolution_t) {255, 255, 255, 255}
+#define NO_EVOLUTION (evolution_t) {-1, -1, -1, -1}
 #define NO_COUP (coup_t) {255, 255}
 
 /**
