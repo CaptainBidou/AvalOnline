@@ -265,10 +265,10 @@ int handleResponse(aotp_response_t response_data) {
             client->state = response_data.client_state;
             // TODO : remplacer par un thread pour que l'host puisse continuer à jouer
             
-            pthread_t threadHost;
-            pthread_create(&threadHost, NULL, (void *)host, myParty);
-            printf("Connexion à la partie en cours... %s %d\n", myParty->host_ip, myParty->host_port);
-            client->socket = connectToServer(myParty->host_ip, myParty->host_port);
+            /*pthread_t threadHost;
+            pthread_create(&threadHost, NULL, (void *)host, myParty);*/
+            //printf("Connexion à la partie en cours... %s %d\n", myParty->host_ip, myParty->host_port);
+            //client->socket = connectToServer(myParty->host_ip, myParty->host_port);
             
             host(myParty);
             handleResponse(requestJoinParty(client,myParty->id, parties));
