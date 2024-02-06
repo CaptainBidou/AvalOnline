@@ -534,14 +534,15 @@ int handleResponse(aotp_response_t response_data) {
             myParty = response_data.parties->party;
             client->state = response_data.client_state;
             // TODO : remplacer par un thread pour que l'host puisse continuer à jouer
-            /*
+            
             pthread_t threadHost;
             pthread_create(&threadHost, NULL, (void *)host, myParty);
             printf("Connexion à la partie en cours... %s %d\n", myParty->host_ip, myParty->host_port);
             client->socket = connectToServer(myParty->host_ip, myParty->host_port);
-            */
+            
             host(myParty);
             handleResponse(requestJoinParty(client,myParty->id));
+            //connexion refused ? 
             
 
 
@@ -645,7 +646,7 @@ void gameLoop(client_t *client, client_state_t state) {
     printf("[DEBUG] selectionner le fichier web/js/avalonline-%d.js\n", getpid());
     aotp_response_t response;
     int successResponse = 0;
-    while(1) {//TOMAS: boucle infinie - il faut pas plutot mettre dès qu'on a plus de coups à jouer ? 
+    while((getCoupsLegaux(position)).nb!=0) {
         printf("[DEBUG] Trait : %d State : %d\n", position.trait, state);
         if(state == position.trait) {
             char origine, destination;
