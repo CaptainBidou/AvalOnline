@@ -18,7 +18,7 @@ party_t *myParty = NULL; // Informations de la partie de l'utilisateur
 list_client_t *players = NULL; // Liste des joueurs connectés
 position_t hostPosition;
 
-//client
+///  client
 char *serverAddress;
 short serverPort;
 client_t *client = NULL; // Informations du client
