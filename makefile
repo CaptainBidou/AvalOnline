@@ -25,14 +25,14 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 $(BIN_DIR)/server: $(OBJ_DIR)/server.o $(OBJ_DIR)/libInet.a $(OBJ_DIR)/mysyscall.o
 	@mkdir -p $(BIN_DIR)
 	@echo "Edition de liens de $<"
-	@gcc $^ -o $@ $(LD_FLAGS) -g -I$(INCLUDE_DIR) -L$(OBJ_DIR) -lInet -lpthread
+	@gcc $^ -o $@ $(LD_FLAGS) -g -I$(INCLUDE_DIR) -L$(OBJ_DIR) -lInet
 	@echo "Creation d'un lien symbolique vers $@"
 	@ln -sf $@ .
 
 $(BIN_DIR)/app: $(OBJ_DIR)/app.o $(OBJ_DIR)/libInet.a $(OBJ_DIR)/mysyscall.o $(OBJ_DIR)/libavalapp.a
 	@mkdir -p $(BIN_DIR)
 	@echo "Edition de liens de $<"
-	@gcc $^ -o $@ $(LD_FLAGS) -g -I$(INCLUDE_DIR) -L$(OBJ_DIR) -lInet -lpthread -lavalapp
+	@gcc $^ -o $@ $(LD_FLAGS) -g -I$(INCLUDE_DIR) -L$(OBJ_DIR) -lInet -lavalapp
 	@echo "Creation d'un lien symbolique vers $@"
 	@ln -sf $@ .
 

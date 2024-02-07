@@ -12,7 +12,7 @@
 #define DATA_H
 
 #ifdef DATA_DEBUG
-    #define DATA_DEBUG_PRINT(...) fprintf(stderr, "[DATA_DEBUG] "); printf(__VA_ARGS__);
+    #define DATA_DEBUG_PRINT(...) fprintf(stderr, "[DATA_DEBUG] "); fprintf(stderr, __VA_ARGS__)
 #else
     #define DATA_DEBUG_PRINT(...)
 #endif

@@ -91,16 +91,14 @@ aotp_response_t connReq(char *pseudo,char *serverAddress,short serverPort, clien
 * \brief Requête pour jouer un coup classique
 * \param client Informations du client
 * \param p Position actuelle
-* \param origine Case d'origine
-* \param destination Case de destination
+* \param coup_t le coup à jouer
 * \return Réponse du serveur
 */
-aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char destination){
+aotp_response_t jouerCoupReq(client_t *client, position_t p, coup_t coup) {
     // Envoi de la requête de connexion
     aotp_request_t *request = createRequest(AOTP_SEND_MOVE);
     request->client_id = client->id;
-    request->coup.origine = origine;
-    request->coup.destination = destination;
+    request->coup = coup;
     send_data(client->socket, request, (serialize_t) struct2Request);
 
     // Réception de la réponse
@@ -164,6 +162,7 @@ aotp_response_t requestJoinParty(client_t *client, party_id_t partyId, list_part
     // Envoi de la requête de connexion
     aotp_request_t *request = createRequest(AOTP_JOIN_PARTY);
     request->client_id = client->id;
+    strcpy(request->pseudo, client->pseudo);
     send_data(client->socket, request, (serialize_t) struct2Request);
 
     // Réception de la réponse

@@ -173,3 +173,31 @@ evolution_t promptEvolution(int numCoup, position_t position) {
     COLOR_RESET;
     return evolution;
 }
+
+/**
+ * \fn void showClientState(client_state_t state)
+ * \brief Affiche l'état du client
+ * \param state Etat du client
+ * 
+*/
+void showClientState(client_state_t state) {
+    COULEUR(RED);
+    switch (state) {
+        case CLIENT_TRAIT_RED:
+            printf("Vous êtes ROUGE\n");
+            break;
+        case CLIENT_TRAIT_YELLOW:
+            printf("Vous êtes JAUNE\n");
+            break;
+        case CLIENT_SPECTATOR:
+            printf("Vous êtes SPECTATEUR\n");
+            break;
+        default:
+            break;
+    }
+    COLOR_RESET;
+    COULEUR(BLUE);
+    printf("Pour suivre la partie, veuillez ouvrir la page suivante : \n");
+    printf("web/avalam.html\n");
+    printf("[DEBUG] selectionner le fichier web/js/avalonline-%d.js\n", getpid());
+}

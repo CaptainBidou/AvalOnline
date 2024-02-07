@@ -302,7 +302,8 @@ position_t jouerEvolution(position_t position ,evolution_t evolution){
     if(position.trait == ROU && position.numCoup == 2) position.evolution.malusR = evolution.malusR;
     if(position.trait == JAU && position.numCoup == 3) position.evolution.malusJ = evolution.malusJ;
     position.numCoup++;
-	position.trait = (position.trait == JAU) ? ROU : JAU;
+	if(position.numCoup != 2) position.trait = (position.trait == JAU) ? ROU : JAU;
+	else position.trait = ROU; // Le rouge joue 2 fois d'affilée pour l'évolution 
 	return position;
 }
 

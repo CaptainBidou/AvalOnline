@@ -27,18 +27,18 @@ void playMove(socket_t *socket, aotp_request_t *requestData, list_client_t **cli
     client_t *client = getClientById(*clients, requestData->client_id);
     if(client == NULL) {
         // TODO : Renvoyer une erreur au client
-        sendResponse(socket, AOTP_ERR_CONNECT, NULL, NULL, 0, CLIENT_UNKOWN);
+        sendResponse(socket, AOTP_ERR_CONNECT, NULL, position, -1, CLIENT_SPECTATOR);
     }
     // On vérifie que le client a le trait
     if(client->state != position->trait) {
         // TODO : Renvoyer une erreur au client
-        sendResponse(socket, AOTP_ERR_CONNECT, NULL, NULL, 0, client->state);
+        sendResponse(socket, AOTP_ILLEGAL_MOVE, NULL, position, 0, client->state);
     }
 
     // On joue le coup
     position_t newPosition = jouerCoup(*position, coup.origine, coup.destination);
     if(newPosition.numCoup == position->numCoup) {
-        sendResponse(socket, AOTP_ERR_CONNECT, NULL, NULL, 0, CLIENT_SPECTATOR);
+        sendResponse(socket, AOTP_ILLEGAL_MOVE, NULL, NULL, 0, CLIENT_SPECTATOR);
     }
 
     // On envoie la nouvelle position à tous les clients
@@ -221,7 +221,6 @@ void struct2Request(aotp_request_t *request, char *buffer)
     if (isCoup(request->coup)) sprintf(buffer, "%scoup_t %d %d\r\n", buffer, (int) request->coup.origine, (int) request->coup.destination);
 
     // écriture de l'évolution
-    printf("evolution : %d %d %d %d\n", (int)request->evolution.bonusJ, (int)request->evolution.malusJ, (int)request->evolution.bonusR, (int)request->evolution.malusR);
     if (isEvolution(request->evolution)) sprintf(buffer, "%sevolution_t %d %d %d %d\r\n", buffer, (int)request->evolution.bonusJ, (int)request->evolution.malusJ, (int)request->evolution.bonusR, (int)request->evolution.malusR);
 }
 
@@ -526,6 +525,7 @@ void connectClientToHost(socket_t *socket, aotp_request_t *requestData, list_cli
     // On recupere la partie
     list_party_t *party = *parties;
     // On envoie une réponse au client
+    printf("%s a rejoint la partie\n", client->pseudo);
     sendResponse(socket, AOTP_PARTY_JOINED, party, NULL, 0, CLIENT_SPECTATOR);
 }
 

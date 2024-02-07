@@ -23,15 +23,12 @@ void exitFunction();
 void *handleClient(void *arg) {
     printf("Client connecté\n");
     socket_t *sd = (socket_t *) arg;
-    aotp_request_t *request = malloc(sizeof(aotp_request_t));
-    buffer_t *buffer = malloc(sizeof(buffer_t));
-    
-    recv_data(sd, request, (serialize_t) request2Struct);
-    requestHandler(sd, request, &clients, &parties, NULL);
+    aotp_request_t request;
+
+    recv_data(sd, &request, (serialize_t) request2Struct);
+    requestHandler(sd, &request, &clients, &parties, NULL);
     // Fermeture de la socket
     freeSocket(sd);
-    // Liberation de la memoire
-    free(request);
 
     // Fin du thread
     pthread_exit(NULL);
@@ -64,7 +61,6 @@ void exitFunction() {
 
     // Fermeture de la socket
     freeSocket(se);
-    
     // Liberation de la memoire
     freePartyList(&parties);
 }

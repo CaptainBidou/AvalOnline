@@ -17,6 +17,7 @@
 party_t *myParty = NULL; // Informations de la partie de l'utilisateur
 list_client_t *players = NULL; // Liste des joueurs connectés
 position_t hostPosition;
+sem_t semHostJoin; // Sémaphore pour que l'host attende qu'il est lancé son serveur avant de faire sa requête de join
 
 //client
 char *serverAddress;
@@ -109,7 +110,7 @@ int main(int argc, char *argv[]) {
     // Récupération des arguments
     getServerAddress(argc, argv, &serverAddress, &serverPort);
     getPseudo(client->pseudo);
-    system("clear");
+    //system("clear");
     socket_t *clientSocket = connectToServer(serverAddress, serverPort);
     response = connReq(client->pseudo, serverAddress, serverPort, client);
     handleResponse(response);
@@ -118,10 +119,10 @@ int main(int argc, char *argv[]) {
     handleResponse(response);
 
     // Barre de chargement
-    loadingBar();
+    //loadingBar();
     
     while(1){
-        system("clear");
+        //system("clear");
         COULEUR(RED);
         printf("\n\nBienvenue \e[%dm%s, \e[%dmvoici la liste des parties en cours !\n", GREEN, client->pseudo, RED);
         // Affichage des parties en cours
@@ -171,14 +172,6 @@ int main(int argc, char *argv[]) {
     }
 }
 
-
-
-
-
-
-
-
-
 /**
 * \fn void *handleClient(void *arg)
 * \brief Gestion des clients 
@@ -202,6 +195,7 @@ void *handleClient(void *arg) {
     // Lorsque c'est le client qui héberge on garde la socket de dialogue pour les échanges tant que le client ne quitte pas
     // La socket est fermée dans le handler de requête
     // Todo : Vérifier si le client a quitté et fermer la socket
+
 }
 
 /**
@@ -213,7 +207,9 @@ void *handleClient(void *arg) {
 void host(party_t *myParty) {
     host_se = createListeningSocket(myParty->host_ip, myParty->host_port, DEFAULT_AOTP_MAX_CLIENTS);
     hostPosition = getPositionInitiale();
-    
+    CHECK(sem_init(&semHostJoin, 0, 0), "_SEM_INIT : semHostJoin");
+    sem_post(&semHostJoin);
+    printf("Serveur hébergé sur %s:%d\n", myParty->host_ip, myParty->host_port);
     while(1) {
         host_sd = acceptClient(host_se);
         pthread_t thread; 
@@ -223,6 +219,7 @@ void host(party_t *myParty) {
     }
     // Fermeture de la socket
     freeSocket(host_se);
+    sem_close(&semHostJoin);
 }
 
 
@@ -250,7 +247,6 @@ void exitFunction() {
 * \return 1 si la réponse a été gérée, 0 sinon
 */
 int handleResponse(aotp_response_t response_data) {
-    printf("Code de la réponse : %d\n", response_data.code);
     switch (response_data.code) {
         case AOTP_OK:
             // Traitement pour les réponses OK
@@ -265,15 +261,17 @@ int handleResponse(aotp_response_t response_data) {
             client->state = response_data.client_state;
             // TODO : remplacer par un thread pour que l'host puisse continuer à jouer
             
+            /*
             pthread_t threadHost;
             pthread_create(&threadHost, NULL, (void *)host, myParty);
             printf("Connexion à la partie en cours... %s %d\n", myParty->host_ip, myParty->host_port);
+
+            sem_wait(&semHostJoin); // Attente que le serveur soit lancé
+            printf("Serveur lancé\n");
             client->socket = connectToServer(myParty->host_ip, myParty->host_port);
-            
-            host(myParty);
             handleResponse(requestJoinParty(client,myParty->id, parties));
-            //connexion refused ? 
-            
+            */
+            host(myParty);
 
 
             return 1;
@@ -319,6 +317,11 @@ int handleResponse(aotp_response_t response_data) {
                 position = *(response_data.position);
                 free(response_data.position);
                 return 1;
+
+            case AOTP_PARTY_FINISHED:
+                // TODO : Afficher le gagnant
+                return 1;
+
         default:
             // Traitement pour les autres types de réponses non gérées
             printf("Réponse non gérée : %d\n", response_data.code);
@@ -337,55 +340,44 @@ int handleResponse(aotp_response_t response_data) {
 */
 void gameLoop(client_t *client, client_state_t state) {
     // TODO : Boucle de jeu
-    COULEUR(RED);
-    switch (state) {
-        case CLIENT_TRAIT_RED:
-            printf("Vous êtes ROUGE\n");
-            break;
-        case CLIENT_TRAIT_YELLOW:
-            printf("Vous êtes JAUNE\n");
-            break;
-        case CLIENT_SPECTATOR:
-            printf("Vous êtes SPECTATEUR\n");
-            break;
-        default:
-            break;
-    }
-    COLOR_RESET;
-    COULEUR(BLUE);
-    printf("Pour suivre la partie, veuillez ouvrir la page suivante : \n");
-    printf("web/avalam.html\n");
-    printf("[DEBUG] selectionner le fichier web/js/avalonline-%d.js\n", getpid());
+    showClientState(state);
     aotp_response_t response;
     int successResponse = 0;
+    int origine, destination;
     while((getCoupsLegaux(position)).nb!=0) {
         printf("[DEBUG] Trait : %d State : %d\n", position.trait, state);
         if(state == position.trait) {
-            int origine, destination;
             if(position.numCoup <= 3) {
                 evolution_t evolution = promptEvolution(position.numCoup, position);
                 response = jouerEvolutionReq(client, position, evolution);
             }
             else {
-                COULEUR(RED);
-                printf("Veuillez entrer le numéro de la case d'origine : ");
-                COLOR_RESET;
-                COULEUR(GREEN);
-                scanf("%d", &origine);
-                clearBuffer();
-                COULEUR(RED);
-                printf("Veuillez entrer le numéro de la case de destination : ");
-                COLOR_RESET;
-                COULEUR(GREEN);
-                scanf("%d", &destination);
-                clearBuffer();
-                COLOR_RESET;
-                aotp_response_t response = jouerCoupReq(client, position, (char) origine, (char) destination);
+                coup_t coup = {0, 0};
+                do {
+                    COULEUR(RED);
+                    printf("Veuillez entrer le numéro de la case d'origine : ");
+                    COLOR_RESET;
+                    COULEUR(GREEN);
+                    scanf("%d", &origine);
+                    clearBuffer();
+                    COULEUR(RED);
+                    printf("Veuillez entrer le numéro de la case de destination : ");
+                    COLOR_RESET;
+                    COULEUR(GREEN);
+                    scanf("%d", &destination);
+                    clearBuffer();
+                    COLOR_RESET;
+                    coup.origine = (char) origine;
+                    coup.destination = (char) destination;
+                } while(!estValide(position, origine, destination));
+
+                aotp_response_t response = jouerCoupReq(client, position, coup);
             }
         }else {
             recv_data(client->socket, &response, (serialize_t) response2Struct);
         }
 
+        // La partie est terminée si le code de la réponse est AOTP_PARTY_FINISHED
         successResponse = handleResponse(response);
     }
 }
@@ -400,7 +392,7 @@ void gameLoop(client_t *client, client_state_t state) {
  * Si l'état est PLAYING, le client est spectateur et se mets dans une boucle d'attente de la position
 */
 void joinGame(client_t *client, party_state_t state) {
-    system("clear");
+    //system("clear");
     switch (state) {
         case PARTY_PLAYING: // Si la partie est en cours forcement le client est spectateur
             // Si la partie est en cours, le client est spectateur et donc recevra la position
@@ -441,6 +433,3 @@ void joinGame(client_t *client, party_state_t state) {
             break;
     }
 }
-
-
-

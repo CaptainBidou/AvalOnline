@@ -77,3 +77,12 @@ void afficherEnAttente(char * message);
 * \return Evolution
 */
 evolution_t promptEvolution(int numCoup, position_t position);
+
+
+/**
+ * \fn void showClientState(client_state_t state)
+ * \brief Affiche l'état du client ainsi que le nom du fichier js
+ * \param state Etat du client
+ * 
+*/
+void showClientState(client_state_t state);

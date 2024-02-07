@@ -154,6 +154,7 @@ void freePartyList(list_party_t **head) {
     list_party_t *next;
     while (current != NULL) {
         next = current->next;
+        if(current->party != NULL)
         free(current->party);
         free(current);
         current = next;

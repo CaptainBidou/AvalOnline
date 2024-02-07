@@ -52,7 +52,7 @@ aotp_response_t connReq(char *pseudo,char *serverAddress,short serverPort, clien
 * \param destination Case de destination
 * \return Réponse du serveur
 */
-aotp_response_t jouerCoupReq(client_t *client, position_t p, char origine, char destination);
+aotp_response_t jouerCoupReq(client_t *client, position_t p, coup_t coup);
 
 /**
 * \fn aotp_response_t jouerEvolutionReq(client_t *client, position_t p, evolution_t evolution)

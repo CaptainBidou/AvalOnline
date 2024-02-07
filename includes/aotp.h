@@ -62,12 +62,15 @@ typedef enum
     AOTP_PLAYER_STATE_UPDATED = 206, /*!< Code de retour etat du joueur mis a jour */
     AOTP_PARTY_STARTED = 207, /*!< Code de retour partie demarree */
     AOTP_POSITION_UPDATED = 208, /*!< Code de retour position mise a jour */
+    AOTP_PARTY_FINISHED = 209, /*!< Code de retour partie terminee */
+    
 
     // Code d'erreur du serveur d'enregistrement
     AOTP_NOK = 400, /*!< Code de retour NOK */
     AOTP_STRING_OVERCHARGED = 401, /*!< Code de retour chaine de caractere surchargee */
     AOTP_ERR_CONNECT = 402, /*!< Code de retour erreur de connexion */
     AOTP_BAD_REQUEST = 403, /*!< Code de retour mauvaise requete */
+    AOTP_ILLEGAL_MOVE = 404, /*!< Code de retour coup illegal */
 
 } AOTP_RESPONSE;    /*!< Enumeration des codes de retour du protocole */
 

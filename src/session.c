@@ -4,9 +4,9 @@
 #define CHECK_MALLOC(sts,msg) if ((sts) == NULL) {perror(msg);exit(-1);} /*!< Macro de vérification d'erreur d'allocation mémoire */
 
 #ifdef SESSION_DEBUG /* Si SESSION_DEBUG est défini, on affiche les messages de debug */
-    #define SESSION_DEBUG_PRINT(...) if (SESSION_DEBUG) { fprintf(stderr, "[SESSION_DEBUG] "); printf(__VA_ARGS__); }
+    #define SESSION_DEBUG_PRINT(...) if (SESSION_DEBUG) { fprintf(stderr, "[SESSION_DEBUG] "); fprintf(stderr, __VA_ARGS__); }
 #else
-    #define SESSION_DEBUG_PRINT(...) 
+    #define SESSION_DEBUG_PRINT(...)
 #endif
 
 #define SET_COLOR(color) printf("\033[%sm", color) /*!< Macro pour changer la couleur du texte */
