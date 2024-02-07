@@ -89,6 +89,6 @@ aotp_response_t requestReady(client_t *client);
  * Si l'état est WAITING, on demande au client s'il est prêt
  * Si l'état est PLAYING, le client est spectateur et se mets dans une boucle d'attente de la position
 */
-void joinGame(client_t *client, party_state_t state);
+//void joinGame(client_t *client, party_state_t state);
 
 

@@ -19,7 +19,7 @@ list_client_t *players = NULL; // Liste des joueurs connectés
 position_t hostPosition;
 sem_t semHostJoin; // Sémaphore pour que l'host attende qu'il est lancé son serveur avant de faire sa requête de join
 
-//client
+///  client
 char *serverAddress;
 short serverPort;
 client_t *client = NULL; // Informations du client
